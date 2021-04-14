@@ -1,7 +1,7 @@
 {
     "name": "react-round-div",
     "version": "1.0.0",
-    "description": "",
+    "description": "Make your rounded corners look phenomenal with g2 continuity.",
     "main": "dist/main.js",
     "scripts": {
         "test": "jest",
@@ -9,6 +9,19 @@
     },
     "author": "drinking-code",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/drinking-code/react-round-div.git"
+    },
+    "keywords": [
+        "svg",
+        "div",
+        "rounded-corners"
+    ],
+    "bugs": {
+        "url": "https://github.com/drinking-code/react-round-div/issues"
+    },
+    "homepage": "https://github.com/drinking-code/react-round-div#readme",
     "dependencies": {
         "react": "^17.0.2"
     },
