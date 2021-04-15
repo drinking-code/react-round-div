@@ -51,7 +51,6 @@ export default function RoundDiv({clip, style, children, ...props}) {
                 || getStyle('background', div.current)?.overwritten[1]?.value
                 || 'transparent'
             )
-            console.log(getColor(style?.border), style?.border)
             setBorderColor(
                 getColor(style?.border)
                 || style?.borderColor
@@ -98,7 +97,8 @@ export default function RoundDiv({clip, style, children, ...props}) {
     }
 
     divStyle.background = 'transparent'
-    divStyle.border = 'none'
+    divStyle.border = divStyle.border || '0'
+    divStyle.borderColor = 'transparent'
 
     return <div {...props} style={divStyle} ref={div}>
         {children}
