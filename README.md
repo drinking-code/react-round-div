@@ -1,8 +1,6 @@
-<header>
-  <h1>Better rounded corners</h1>
-  <i>for HTML divs in React.js</i>
-</header>
-<br/><br/>
+# Better rounded corners
+*for HTML divs in React.js*
+
 `react-round-div` makes your rounded rectangles look smoother for a more pleasant feel. With a simple and easy integration into your code you have to do almost nothing to up the style of your project.
 
 Here is a very clear demonstration of these smooth corners:
@@ -34,5 +32,5 @@ export default App;
 
 
 ## Caveats
-This package is still in the starting blocks, so for now only single colored backgrounds and borders are supported.  
+This package is still in the starting blocks, so for now only single colored backgrounds and solid, uniform borders are supported.  
 There is support to come for gradients and image backgrounds, gradient borders, and perhaps proper `backdrop-filter` support.

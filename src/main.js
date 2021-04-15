@@ -1,6 +1,7 @@
 import React, {useRef, useEffect, useState} from 'react';
 import getStyle from "./styles-extractor";
 import './getMatchedCSSRules-polyfill'
+import {getWidth, getColor} from "./css-utils";
 
 export default function RoundDiv({clip, style, children, ...props}) {
     const [height, setHeight] = useState(0)
@@ -9,6 +10,8 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const [offsetY, setOffsetY] = useState(0)
     const [radius, setRadius] = useState(0)
     const [background, setBackground] = useState('transparent')
+    const [borderColor, setBorderColor] = useState('transparent')
+    const [borderWidth, setBorderWidth] = useState('1')
 
     const div = useRef()
 
@@ -22,6 +25,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
         svg.style.top = '0px';
         svg.style.height = '0px';
         svg.style.width = '0px';
+        svg.style.overflow = 'visible';
         svg.style.zIndex = '-1';
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
         svg.appendChild(path)
@@ -47,6 +51,19 @@ export default function RoundDiv({clip, style, children, ...props}) {
                 || getStyle('background', div.current)?.overwritten[1]?.value
                 || 'transparent'
             )
+            console.log(getColor(style?.border), style?.border)
+            setBorderColor(
+                getColor(style?.border)
+                || style?.borderColor
+                || getStyle('borderColor', div.current)?.overwritten[1]?.value
+                || 'transparent'
+            )
+            setBorderWidth(
+                getWidth(style?.border)
+                || style?.borderWidth
+                || getStyle('borderWidth', div.current)?.overwritten[1]?.value
+                || '1'
+            )
         }
     }, [div, clip, style])
 
@@ -70,9 +87,11 @@ export default function RoundDiv({clip, style, children, ...props}) {
             generateSvgSquircle(height, width, radius, clip)
         )
         newPath.setAttributeNS('http://www.w3.org/2000/svg', 'fill', background)
+        newPath.setAttributeNS('http://www.w3.org/2000/svg', 'stroke', borderColor)
+        newPath.setAttributeNS('http://www.w3.org/2000/svg', 'stroke-width', borderWidth)
         // rerender
         path.parentNode.innerHTML = newPath.outerHTML
-    }, [background, height, width, radius, clip, offsetX, offsetY])
+    }, [background, height, width, radius, clip, offsetX, offsetY, borderColor, borderWidth])
 
     const divStyle = {
         ...style

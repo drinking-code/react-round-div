@@ -2,13 +2,13 @@
     <style type="text/css">
         text{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;text-anchor: middle}
         .f1{font-size:8px;font-weight:bold}
-        .f2{font-size:6px;opacity:0.5}
+        .f2{font-size:5px;opacity:0.5}
     </style>
     <rect width="100%" height="100%" fill="#fff"/>
     <path d="M0,0v50h26c13.3,0,24-10.7,24-24V0H0z"/>
     <text transform="translate(50 70)" class="f1">not hunky-dory</text>
-    <text transform="translate(50 79)" class="f2">default html corners</text>
+    <text transform="translate(50 78)" class="f2">default html corners</text>
     <path d="M100,0v50h20c22,0,30-8,30-30V0H100z"/>
     <text transform="translate(150 70)" class="f1">very much hunky-dory</text>
-    <text transform="translate(150 79)" class="f2">smooth corners via svg</text>
+    <text transform="translate(150 78)" class="f2">smooth corners via svg</text>
 </svg>
