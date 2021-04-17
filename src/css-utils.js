@@ -1,10 +1,11 @@
 import CSS_COLOR_NAMES from "./html-colors";
+import toPx from "./css-length-converter";
 
-function _getAttributeFromString(string, method) {
+function _getAttributeFromString(string, method, ...data) {
     if (!string) return false
     string = string.split(' ')
     for (let i in string) {
-        const res = method(string, Number(i))
+        const res = method(string, Number(i), ...data)
         if (res) return res
     }
 }
@@ -45,24 +46,25 @@ function _getOpacity(border, i) {
         return 1
 }
 
-const htmlLengthNotSvgError = new Error('<RoundDiv> Border lengths must be either "thin", "medium", "thick", or in one of the following units: em, ex, cm, in, mm, px, pc, pt.')
+const htmlLengthNotSvgError = new Error('<RoundDiv> Border lengths must be either "thin", "medium", "thick", or in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.')
 
 function unitCheck(length) {
-    if (length?.match(/(cap|ch|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|Q)/g)) throw htmlLengthNotSvgError
+    if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g)) throw htmlLengthNotSvgError
     return length
 }
 
-function _getWidth(border, i) {
+function _getWidth(border, i, element) {
     const val = border[i]
     // width is 0
-    if (val === '0') return '0'
+    if (val === '0') return 0
     // width is a word
-    if (val.toLowerCase() === 'thin') return '1px'
-    if (val.toLowerCase() === 'medium') return '3px'
-    if (val.toLowerCase() === 'thick') return '5px'
+    if (val.toLowerCase() === 'thin') return 1
+    if (val.toLowerCase() === 'medium') return 3
+    if (val.toLowerCase() === 'thick') return 5
     unitCheck(val)
     // width is <length>
-    if (val.match(/(\d+(\.\d+)?(em|ex|px|cm|mm|in|pc|pt)|0)/g)) return val
+    if (val.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
+        return toPx(element, val)
     return false
 }
 

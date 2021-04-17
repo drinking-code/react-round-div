@@ -10,7 +10,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const [background, setBackground] = useState('transparent')
     const [backgroundOpacity, setBackgroundOpacity] = useState(0)
     const [borderColor, setBorderColor] = useState('transparent')
-    const [borderWidth, setBorderWidth] = useState('1')
+    const [borderWidth, setBorderWidth] = useState(1)
     const [borderOpacity, setBorderOpacity] = useState(1)
 
     const div = useRef()
@@ -44,18 +44,6 @@ export default function RoundDiv({clip, style, children, ...props}) {
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
-            <style>{`
-                rect {
-                    width: calc(${width}px + ${borderWidth} * 2);
-                    height: calc(${height}px + ${borderWidth} * 2);
-                    x: calc(${borderWidth} * -1);
-                    y: calc(${borderWidth} * -1);
-                }
-                #border {
-                    stroke-width: ${borderWidth};
-                }
-            `}
-            </style>
             <svg viewBox={`0 0 ${height} ${width}`} style={{
                 position: 'fixed',
                 height,
@@ -64,17 +52,18 @@ export default function RoundDiv({clip, style, children, ...props}) {
                 zIndex: -1
             }} xmlnsXlink="http://www.w3.org/1999/xlink">
                 <defs>
-                    <path d={generateSvgSquircle(height, width, radius, clip)} id="shape"/>
+                    <path d={
+                        generateSvgSquircle(height + borderWidth * 2, width + borderWidth * 2, radius, clip)
+                    } id="shape"/>
 
-                    <mask id="outsideOnly">
-                        <rect fill="white"/>
+                    <clipPath id="insideOnly">
                         <use xlinkHref="#shape" fill="black"/>
-                    </mask>
+                    </clipPath>
                 </defs>
-
-                <use xlinkHref="#shape" id="border" stroke={borderColor} fill="none"
-                     opacity={borderOpacity} mask="url(#outsideOnly)"/>
-                <use xlinkHref="#shape" fill={background} opacity={backgroundOpacity}/>
+                <use xlinkHref="#shape" fill={background} opacity={backgroundOpacity}
+                     x={-borderWidth} y={-borderWidth}/>
+                <use xlinkHref="#shape" stroke={borderColor} fill="none" strokeWidth={borderWidth * 2}
+                     opacity={borderOpacity} clipPath="url(#insideOnly)" x={-borderWidth} y={-borderWidth}/>
             </svg>
             <slot style={{zIndex: 1}}/>
         </ShadowRoot>

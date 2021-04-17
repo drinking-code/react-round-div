@@ -42,13 +42,12 @@ export default function updateStates(args) {
             || (getStyle('borderColor', div.current)?.overwritten || [])[1]?.value
             || (getStyle('borderTopColor', div.current)?.overwritten || [])[1]?.value
         ) || 'transparent')
-        setBorderWidth(
-            getWidth(style?.border)
+        setBorderWidth(getWidth(
+            style?.border
             || style?.borderWidth
             || unitCheck((getStyle('borderWidth', div.current)?.overwritten || [])[0]?.value)
-            || unitCheck((getStyle('borderTopWidth', div.current)?.overwritten || [])[0]?.value)
-            || '1'
-        )
+            || unitCheck((getStyle('borderTopWidth', div.current)?.overwritten || [])[0]?.value),
+            div.current) || 1)
         setBorderOpacity(getOpacity(
             style?.border
             || style?.borderColor

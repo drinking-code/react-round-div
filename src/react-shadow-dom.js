@@ -1,6 +1,6 @@
 /*
  * from https://github.com/apearce/react-shadow-root/blob/master/src/lib/ReactShadowRoot.js
- * by @apearce
+ * by apearce
 */
 
 import React from 'react';
