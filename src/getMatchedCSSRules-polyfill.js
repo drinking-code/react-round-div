@@ -1,5 +1,21 @@
-// polyfill window.getMatchedCSSRules() in FireFox 6+
 /* eslint-disable */
+// polyfill element.matches
+if (!Element.prototype.matches) {
+    Element.prototype.matches =
+        Element.prototype.matchesSelector ||
+        Element.prototype.mozMatchesSelector ||
+        Element.prototype.msMatchesSelector ||
+        Element.prototype.oMatchesSelector ||
+        Element.prototype.webkitMatchesSelector ||
+        function(s) {
+            var matches = (this.document || this.ownerDocument).querySelectorAll(s),
+                i = matches.length;
+            while (--i >= 0 && matches.item(i) !== this) {}
+            return i > -1;
+        };
+}
+
+// polyfill window.getMatchedCSSRules() in FireFox 6+
 if ( typeof window.getMatchedCSSRules !== 'function' ) {
     var ELEMENT_RE = /[\w-]+/g,
         ID_RE = /#[\w-]+/g,
@@ -72,7 +88,7 @@ if ( typeof window.getMatchedCSSRules !== 'function' ) {
         var selectors = selector_text.split(','),
             selector, score, result = 0;
         while ( selector = selectors.shift() ) {
-            if ( element.mozMatchesSelector(selector) ) {
+            if ( element.matches(selector) ) {
                 score = calculateScore(selector);
                 result = score > result ? score : result;
             }
@@ -121,7 +137,7 @@ if ( typeof window.getMatchedCSSRules !== 'function' ) {
                 }
                 //TODO: for now only polyfilling Gecko
                 // check if this element matches this rule's selector
-                if ( element.mozMatchesSelector(rule.selectorText) ) {
+                if ( element.matches(rule.selectorText) ) {
                     // push the rule to the results set
                     result.push(rule);
                 }

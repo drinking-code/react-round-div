@@ -1,106 +1,83 @@
 import React, {useRef, useEffect, useState} from 'react';
-import getStyle from "./styles-extractor";
 import './getMatchedCSSRules-polyfill'
-import {getWidth, getColor} from "./css-utils";
+import updateStates from "./updateStates";
+import ShadowRoot from "./react-shadow-dom";
 
 export default function RoundDiv({clip, style, children, ...props}) {
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
-    const [offsetX, setOffsetX] = useState(0)
-    const [offsetY, setOffsetY] = useState(0)
     const [radius, setRadius] = useState(0)
     const [background, setBackground] = useState('transparent')
+    const [backgroundOpacity, setBackgroundOpacity] = useState(0)
     const [borderColor, setBorderColor] = useState('transparent')
     const [borderWidth, setBorderWidth] = useState('1')
+    const [borderOpacity, setBorderOpacity] = useState(1)
 
     const div = useRef()
 
     useEffect(() => {
         // attach shadow root to div
-        if (div.current?.shadowRoot) return
-        const shadow = div.current?.attachShadow({mode: 'open'})
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        svg.style.position = 'fixed';
-        svg.style.left = '0px';
-        svg.style.top = '0px';
-        svg.style.height = '0px';
-        svg.style.width = '0px';
-        svg.style.overflow = 'visible';
-        svg.style.zIndex = '-1';
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        svg.appendChild(path)
-        shadow.appendChild(svg)
-        const content = document.createElement('slot')
-        shadow.appendChild(content)
+        if (!div.current?.shadowRoot)
+            div.current?.attachShadow({mode: 'open'})
     }, [])
 
-    useEffect(() => {
-        const boundingClientRect = div.current?.getBoundingClientRect()
-        if (boundingClientRect) {
-            setHeight(boundingClientRect.height)
-            setWidth(boundingClientRect.width)
-            setOffsetX(boundingClientRect.left)
-            setOffsetY(boundingClientRect.top)
-        }
-        const divStyle = boundingClientRect ? window?.getComputedStyle(div.current) : null
-        if (divStyle) {
-            setRadius(Number(divStyle.borderRadius.replace('px', '')))
-            setBackground(
-                style?.background
-                || style?.backgroundColor
-                || getStyle('background', div.current)?.overwritten[1]?.value
-                || 'transparent'
-            )
-            setBorderColor(
-                getColor(style?.border)
-                || style?.borderColor
-                || getStyle('borderColor', div.current)?.overwritten[1]?.value
-                || 'transparent'
-            )
-            setBorderWidth(
-                getWidth(style?.border)
-                || style?.borderWidth
-                || getStyle('borderWidth', div.current)?.overwritten[1]?.value
-                || '1'
-            )
-        }
-    }, [div, clip, style])
-
-    useEffect(() => {
-        const path = div.current?.shadowRoot?.querySelector('path')
-        if (!path) return
-        path.parentNode.style.width = width
-        path.parentNode.style.height = height
-        path.parentNode.style.top = offsetY
-        path.parentNode.style.left = offsetX
-        path.parentNode.removeAttributeNS('http://www.w3.org/2000/svg', 'viewBox')
-        path.parentNode.setAttributeNS(
-            'http://www.w3.org/2000/svg',
-            'viewBox',
-            `0 0 ${height} ${width}`
-        )
-        const newPath = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        newPath.setAttributeNS(
-            'http://www.w3.org/2000/svg',
-            'd',
-            generateSvgSquircle(height, width, radius, clip)
-        )
-        newPath.setAttributeNS('http://www.w3.org/2000/svg', 'fill', background)
-        newPath.setAttributeNS('http://www.w3.org/2000/svg', 'stroke', borderColor)
-        newPath.setAttributeNS('http://www.w3.org/2000/svg', 'stroke-width', borderWidth)
-        // rerender
-        path.parentNode.innerHTML = newPath.outerHTML
-    }, [background, height, width, radius, clip, offsetX, offsetY, borderColor, borderWidth])
+    useEffect(() => updateStates({
+        div,
+        style,
+        setHeight,
+        setWidth,
+        setRadius,
+        setBackground,
+        setBackgroundOpacity,
+        setBorderColor,
+        setBorderWidth,
+        setBorderOpacity
+    }), [div, clip, style])
 
     const divStyle = {
         ...style
     }
 
     divStyle.background = 'transparent'
-    divStyle.border = divStyle.border || '0'
+    divStyle.borderWidth = divStyle.borderWidth || '0'
     divStyle.borderColor = 'transparent'
 
     return <div {...props} style={divStyle} ref={div}>
+        <ShadowRoot>
+            <style>{`
+                rect {
+                    width: calc(${width}px + ${borderWidth} * 2);
+                    height: calc(${height}px + ${borderWidth} * 2);
+                    x: calc(${borderWidth} * -1);
+                    y: calc(${borderWidth} * -1);
+                }
+                #border {
+                    stroke-width: ${borderWidth};
+                }
+            `}
+            </style>
+            <svg viewBox={`0 0 ${height} ${width}`} style={{
+                position: 'fixed',
+                height,
+                width,
+                overflow: 'visible',
+                zIndex: -1
+            }} xmlnsXlink="http://www.w3.org/1999/xlink">
+                <defs>
+                    <path d={generateSvgSquircle(height, width, radius, clip)} id="shape"/>
+
+                    <mask id="outsideOnly">
+                        <rect fill="white"/>
+                        <use xlinkHref="#shape" fill="black"/>
+                    </mask>
+                </defs>
+
+                <use xlinkHref="#shape" id="border" stroke={borderColor} fill="none"
+                     opacity={borderOpacity} mask="url(#outsideOnly)"/>
+                <use xlinkHref="#shape" fill={background} opacity={backgroundOpacity}/>
+            </svg>
+            <slot style={{zIndex: 1}}/>
+        </ShadowRoot>
         {children}
     </div>
 }
