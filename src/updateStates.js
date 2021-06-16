@@ -47,7 +47,7 @@ export default function updateStates(args) {
             || style?.borderWidth
             || unitCheck((getStyle('borderWidth', div.current)?.overwritten || [])[0]?.value)
             || unitCheck((getStyle('borderTopWidth', div.current)?.overwritten || [])[0]?.value),
-            div.current) || 1)
+            div.current) || 0)
         setBorderOpacity(getOpacity(
             style?.border
             || style?.borderColor

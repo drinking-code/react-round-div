@@ -1,7 +1,8 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useEffect, useState} from 'react'
+import generateSvgSquircle from './generator'
 import './getMatchedCSSRules-polyfill'
-import updateStates from "./updateStates";
-import ShadowRoot from "./react-shadow-dom";
+import updateStates from "./updateStates"
+import ShadowRoot from "./react-shadow-dom"
 
 export default function RoundDiv({clip, style, children, ...props}) {
     const [height, setHeight] = useState(0)
@@ -10,7 +11,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const [background, setBackground] = useState('transparent')
     const [backgroundOpacity, setBackgroundOpacity] = useState(0)
     const [borderColor, setBorderColor] = useState('transparent')
-    const [borderWidth, setBorderWidth] = useState(1)
+    const [borderWidth, setBorderWidth] = useState(0)
     const [borderOpacity, setBorderOpacity] = useState(1)
 
     const div = useRef()
@@ -44,7 +45,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
-            <svg viewBox={`0 0 ${height} ${width}`} style={{
+            <svg viewBox={`0 0 ${width} ${height}`} style={{
                 position: 'fixed',
                 height,
                 width,
@@ -65,28 +66,8 @@ export default function RoundDiv({clip, style, children, ...props}) {
                 <use xlinkHref="#shape" stroke={borderColor} fill="none" strokeWidth={borderWidth * 2}
                      opacity={borderOpacity} clipPath="url(#insideOnly)" x={-borderWidth} y={-borderWidth}/>
             </svg>
-            <slot style={{zIndex: 1}}/>
+            <slot/>
         </ShadowRoot>
         {children}
     </div>
-}
-
-function generateSvgSquircle(height, width, radius, clip) {
-    const RADIUS_SCALE_FACTOR = 1.25
-    height = Number(height);
-    width = Number(width);
-    radius = clip === false
-        ? Number(radius)
-        : Math.min(Number(radius), height / 2 / RADIUS_SCALE_FACTOR, width / 2 / RADIUS_SCALE_FACTOR);
-    if (isNaN(height)) throw new Error(`'height' must be a number`);
-    if (isNaN(width)) throw new Error(`'width' must be a number`);
-    if (isNaN(radius)) throw new Error(`'radius' must be a number`);
-    const point = RADIUS_SCALE_FACTOR * radius,
-        bezier = radius / 3;
-
-    return `M 0,${point} C 0,${bezier}, ${bezier},0, ${point},0
-        L ${width - point},0 C ${width - bezier},0, ${width},${bezier}, ${width},${point}
-        L ${width},${height - point} C ${width},${height - bezier}, ${width - bezier},${height}, ${width - point},${height}
-        L ${point},${height} C ${bezier},${height}, 0,${height - bezier}, 0,${height - point}
-        Z`;
 }
