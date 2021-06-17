@@ -1,8 +1,9 @@
-import React, {useRef, useEffect, useState} from 'react'
+import React, {useRef, useEffect, useState, useCallback} from 'react'
 import generateSvgSquircle from './generator'
 import './getMatchedCSSRules-polyfill'
 import updateStates from "./updateStates"
 import ShadowRoot from "./react-shadow-dom"
+import attachCSSWatcher from './style-sheet-watcher'
 
 export default function RoundDiv({clip, style, children, ...props}) {
     const [height, setHeight] = useState(0)
@@ -22,7 +23,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
             div.current?.attachShadow({mode: 'open'})
     }, [])
 
-    useEffect(() => updateStates({
+    const updateStatesWithArgs = useCallback(() => updateStates({
         div,
         style,
         setHeight,
@@ -33,7 +34,13 @@ export default function RoundDiv({clip, style, children, ...props}) {
         setBorderColor,
         setBorderWidth,
         setBorderOpacity
-    }), [div, clip, style])
+    }), [style])
+
+    useEffect(updateStatesWithArgs, [div, clip, style, updateStatesWithArgs])
+
+    useEffect(() => {
+        attachCSSWatcher(() => updateStatesWithArgs())
+    }, [updateStatesWithArgs])
 
     const divStyle = {
         ...style
@@ -45,13 +52,14 @@ export default function RoundDiv({clip, style, children, ...props}) {
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
+            <style>{':host{position:relative}'}</style>
             <svg viewBox={`0 0 ${width} ${height}`} style={{
-                position: 'fixed',
+                position: 'absolute',
                 height,
-                width,
+                width: 1,
                 overflow: 'visible',
                 zIndex: -1
-            }} xmlnsXlink="http://www.w3.org/1999/xlink">
+            }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
                     <path d={
                         generateSvgSquircle(height + borderWidth * 2, width + borderWidth * 2, radius, clip)

@@ -29,13 +29,13 @@ export default function generateSvgSquircle(height, width, radius, clip) {
             mapRange(radius, (x / 2) * .90, x / 2, 0, 1),
             1
         )) * 1.7,
-        hyOffset = yOffsetF(height),
-        wyOffset = yOffsetF(width)
+        hyOffset = clip !== false ? yOffsetF(height) : 0,
+        wyOffset = clip !== false ? yOffsetF(width) : 0
 
     const startPoint = `${a0xw},${wyOffset}`
 
     return `M${startPoint}
-    ${width / 2 < a0x
+    ${width / 2 < a0x && clip !== false
         ? ''
         : `L${width - a0xw},0`
     }
@@ -45,7 +45,7 @@ export default function generateSvgSquircle(height, width, radius, clip) {
     C${width},${a2x},${width},${a1x},
     
     ${width - hyOffset},${a0xh}
-    ${height / 2 < a0x
+    ${height / 2 < a0x && clip !== false
         ? ''
         : `L${width},${height - a0xh}`
     }
@@ -55,7 +55,7 @@ export default function generateSvgSquircle(height, width, radius, clip) {
     C${width - a2x},${height},${width - a1x},${height},
     
     ${width - a0xw},${height - wyOffset}
-    ${width / 2 < a0x
+    ${width / 2 < a0x && clip !== false
         ? ''
         : `L${a0xw},${height}`
     }
@@ -65,7 +65,7 @@ export default function generateSvgSquircle(height, width, radius, clip) {
     C0,${height - a2x},0,${height - a1x},
     
     ${hyOffset},${height - a0xh}
-    ${height / 2 < a0x
+    ${height / 2 < a0x && clip !== false
         ? ''
         : `L0,${a0xh}`
     }
