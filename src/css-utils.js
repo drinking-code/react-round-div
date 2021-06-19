@@ -1,10 +1,12 @@
 import CSS_COLOR_NAMES from "./html-colors";
 import toPx from "./css-length-converter";
+import {element} from 'prop-types'
 
 function _getAttributeFromString(string, method, ...data) {
     if (!string) return false
     string = string.split(' ')
     for (let i in string) {
+        if (!string.hasOwnProperty(i)) continue
         const res = method(string, Number(i), ...data)
         if (res) return res
     }
@@ -26,11 +28,41 @@ function _getColor(border, i) {
         return color
     }
     // color is a html color name
-    if (
-        CSS_COLOR_NAMES.map(color => color.toLowerCase())
-            .includes(val.toLowerCase())
-    ) return val
+    if (CSS_COLOR_NAMES.map(color => color.toLowerCase())
+        .includes(val.toLowerCase()))
+        return val
+    if (val === 'currentcolor') {
+        return 'currentcolor'
+    }
     return false
+}
+
+function _getImage(border, i) {
+    const val = border[i]
+
+    if (val.startsWith('url')) {
+        let url = val;
+        for (let j = 1; border[i + j]; j++) {
+            url += border[i + j]
+        }
+        url = /url\(("[^"]+"|'[^']+'|[^)]+)\)/g.exec(url)
+        url = url ? url[1] : false
+        url = url?.startsWith('"') || url?.startsWith("'")
+            ? url.substr(1, url.length - 2)
+            : url
+        return url
+    }
+}
+
+function _getImageSize(border, i, element) {
+    const val = border[i]
+
+    if (['cover', 'contain'].includes(val) || val.endsWith('%')) {
+        return val
+    }
+    unitCheck(val, htmlBackgroundSizeNotSvgError)
+    if (val.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
+        return toPx(element, val)
 }
 
 function _getOpacity(border, i) {
@@ -46,10 +78,14 @@ function _getOpacity(border, i) {
         return 1
 }
 
-const htmlLengthNotSvgError = new Error('<RoundDiv> Border lengths must be either "thin", "medium", "thick", or in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.')
+const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
+const htmlBorderLengthNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))
+const htmlBackgroundSizeNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('background size', '"cover", "contain"'))
 
-function unitCheck(length) {
-    if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g)) throw htmlLengthNotSvgError
+function unitCheck(length, err) {
+    if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g)) throw err
     return length
 }
 
@@ -61,15 +97,17 @@ function _getWidth(border, i, element) {
     if (val.toLowerCase() === 'thin') return 1
     if (val.toLowerCase() === 'medium') return 3
     if (val.toLowerCase() === 'thick') return 5
-    unitCheck(val)
+    unitCheck(val, htmlBorderLengthNotSvgError)
     // width is <length>
     if (val.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
         return toPx(element, val)
     return false
 }
 
-const getWidth = s => _getAttributeFromString(s, _getWidth),
+const getWidth = (s, el) => _getAttributeFromString(s, _getWidth, el),
+    getImage = s => _getAttributeFromString(s, _getImage),
+    getImageSize = (s, el) => _getAttributeFromString(s, _getImageSize, el),
     getColor = s => _getAttributeFromString(s, _getColor),
     getOpacity = s => _getAttributeFromString(s, _getOpacity)
 
-export {getWidth, getColor, unitCheck, getOpacity}
+export {getWidth, getImage, getImageSize, getColor, getOpacity}

@@ -1,9 +1,6 @@
-let watchers = 0
 const CSSChangeEvent = new CustomEvent('css-change');
 
 export default function attachCSSWatcher(callback) {
-    watchers++
-    console.log(watchers)
     CSSWatcher.addEventListener('css-change', () => callback())
 }
 
