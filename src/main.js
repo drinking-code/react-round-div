@@ -6,13 +6,18 @@ import ShadowRoot from "./react-shadow-dom"
 import attachCSSWatcher from './style-sheet-watcher'
 
 export default function RoundDiv({clip, style, children, ...props}) {
+    // welcome to react states hell
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(0)
+
     const [background, setBackground] = useState('transparent')
     const [backgroundImage, setBackgroundImage] = useState('none')
-    const [backgroundImageSize, setBackgroundImageSize] = useState(null)
+    // todo: background size two values (from css)
+    const [backgroundImageSize, setBackgroundImageSize] = useState([null, null])
     const [backgroundOpacity, setBackgroundOpacity] = useState(0)
+    const [backgroundRepeat, setBackgroundRepeat] = useState(['repeat', 'repeat'])
+
     const [borderColor, setBorderColor] = useState('transparent')
     const [borderWidth, setBorderWidth] = useState(0)
     const [borderOpacity, setBorderOpacity] = useState(1)
@@ -35,6 +40,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
         setBackgroundImage,
         setBackgroundImageSize,
         setBackgroundOpacity,
+        setBackgroundRepeat,
         setBorderColor,
         setBorderWidth,
         setBorderOpacity
@@ -55,14 +61,14 @@ export default function RoundDiv({clip, style, children, ...props}) {
     divStyle.borderColor = 'transparent'
 
     const [backgroundImageAspectRatio, setBackgroundImageAspectRatio] = useState(1)
-    const [backgroundImageHeight, setBackgroundImageHeight] = useState(0)
-    const [backgroundImageWidth, setBackgroundImageWidth] = useState(0)
+    // const [backgroundImageHeight, setBackgroundImageHeight] = useState(0)
+    // const [backgroundImageWidth, setBackgroundImageWidth] = useState(0)
     useEffect(() => {
         const img = new Image()
         img.onload = () => {
             setBackgroundImageAspectRatio(img.naturalWidth / img.naturalHeight)
-            setBackgroundImageHeight(img.naturalHeight)
-            setBackgroundImageWidth(img.naturalWidth)
+            // setBackgroundImageHeight(img.naturalHeight)
+            // setBackgroundImageWidth(img.naturalWidth)
         }
         img.src = backgroundImage
     }, [backgroundImage, setBackgroundImageAspectRatio])
@@ -70,24 +76,40 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const fullHeight = height + borderWidth * 2,
         fullWidth = width + borderWidth * 2
 
-    console.log(backgroundImageSize)
-
     const lengthCalculator = (isWidth) => {
-        if ((!isWidth && backgroundImageAspectRatio > 1)
-            || (isWidth && backgroundImageAspectRatio < 1)
-            || !backgroundImageSize
-        ) return undefined
+        let n = isWidth ? 0 : 1
 
-        if (typeof backgroundImageSize === 'number')
-            return backgroundImageSize
+        if (backgroundImageSize[0] === 'contain')
+            if (backgroundImageAspectRatio > 1)
+                return isWidth ? width : (height / backgroundImageAspectRatio)
+            else
+                return isWidth ? (width * backgroundImageAspectRatio) : height
 
-        if (['cover', 'contain'].includes(backgroundImageSize))
-            return fullHeight
+        if (['cover', 'contain'].includes(backgroundImageSize[0]))
+            return isWidth ? width : height
 
-        if (backgroundImageSize.endsWith('%'))
-            return (isWidth ? fullWidth : fullHeight)
-                * (Number(backgroundImageSize.replace('%', '')) / 100)
+        if (backgroundImageSize[n] === null && !!backgroundImageSize[0])
+            return lengthCalculator(true) *
+                (backgroundImageAspectRatio < 1
+                    ? 1 / backgroundImageAspectRatio
+                    : backgroundImageAspectRatio
+                )
+
+        if (!backgroundImageSize[n])
+            return undefined
+
+        if (backgroundImageSize[n]?.endsWith('%'))
+            return width * (Number(backgroundImageSize[n].replace('%', '')) / 100)
+
+        if (typeof backgroundImageSize[n] === 'number')
+            return backgroundImageSize[n]
     }
+
+    const imageHeight = lengthCalculator(false),
+        imageWidth = lengthCalculator(true),
+        preserveImageAspectRatio = (
+            ['cover', 'contain'].includes(backgroundImageSize[0])
+        )
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
@@ -102,13 +124,19 @@ export default function RoundDiv({clip, style, children, ...props}) {
                     <path d={
                         generateSvgSquircle(fullHeight, fullWidth, radius, clip)
                     } id="shape"/>
-
+                    {/* todo: support for "repeat: space" and "repeat: round" */}
                     <pattern id="bg" patternUnits="userSpaceOnUse"
-                             width={fullWidth} height={fullHeight}>
-                        <image href={backgroundImage} x={borderWidth} y={borderWidth}
-                               preserveAspectRatio={'xMinYMin ' + (backgroundImageSize === 'contain' ? 'meet' : 'slice')}
-                               height={lengthCalculator(false)}
-                               width={lengthCalculator(true)}/>
+                             width={backgroundRepeat[0] === 'no-repeat' ? fullWidth : imageWidth}
+                             height={backgroundRepeat[1] === 'no-repeat' ? fullHeight : imageHeight}
+                             x={borderWidth} y={borderWidth}>
+                        <image href={backgroundImage}
+                               preserveAspectRatio={preserveImageAspectRatio ? 'xMinYMin ' + (
+                                   backgroundImageSize[0] === 'contain' || backgroundImageSize[0]?.endsWith('%')
+                                       ? 'meet'
+                                       : 'slice'
+                               ) : 'none'}
+                               height={imageHeight}
+                               width={imageWidth}/>
                     </pattern>
 
                     <clipPath id="insideOnly">

@@ -1,21 +1,8 @@
-import {getColor, getImage, getImageSize, getOpacity, getWidth} from "./css-utils";
+import {getColor, getImage, getImageSize, getOpacity, getRepeat, getWidth} from "./css-utils";
 import getStyle from "./styles-extractor";
 
 export default function updateStates(args) {
-    const {
-        div,
-        style,
-        setHeight,
-        setWidth,
-        setRadius,
-        setBackground,
-        setBackgroundImage,
-        setBackgroundImageSize,
-        setBackgroundOpacity,
-        setBorderColor,
-        setBorderWidth,
-        setBorderOpacity
-    } = args
+    const {div, style, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
     if (boundingClientRect) {
         setHeight(boundingClientRect.height)
@@ -54,31 +41,35 @@ export default function updateStates(args) {
 
     const divStyle = div.current ? window?.getComputedStyle(div.current) : null
     if (divStyle) {
-        setRadius(Number(
+        let states = args
+        states.setRadius(Number(
             (divStyle.borderRadius || divStyle.borderTopLeftRadius)
                 .replace('px', ''))
         )
-        setBackground(getColor(
+        states.setBackground(getColor(
             getNthStyleAttrOrAlt('background', 'background-color', 1)
         ) || 'transparent')
-        setBackgroundImage(getImage(
+        states.setBackgroundImage(getImage(
             getNthStyleAttrOrAlt('background', 'background-image', 1)
         ) || 'none')
-        setBackgroundImageSize(getImageSize(
+        states.setBackgroundImageSize(getImageSize(
             getNthStyleAttr('background-size', 1)
-        ) || null)
-        setBackgroundOpacity(getOpacity(
+        ) || [null, null])
+        states.setBackgroundOpacity(getOpacity(
             getNthStyleAttrOrAlt('background', 'background-color', 1)
         ) || 1)
+        states.setBackgroundRepeat(getRepeat(
+            getNthStyleAttrOrAlt('background', 'background-repeat', 1)
+        ) || ['repeat', 'repeat'])
 
-        setBorderColor(getColor(
+        states.setBorderColor(getColor(
             getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
         ) || 'transparent')
-        setBorderOpacity(getOpacity(
+        states.setBorderOpacity(getOpacity(
             getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
         ) || 1)
 
-        setBorderWidth(getWidth(
+        states.setBorderWidth(getWidth(
             getNthStyleAttrOrAlt('border', 'border-width', 'border-top-width', 0),
             div.current
         ) || 0)
