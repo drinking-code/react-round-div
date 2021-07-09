@@ -1,4 +1,4 @@
-import {getColor, getImage, getImageSize, getOpacity, getRepeat, getWidth} from "./css-utils";
+import {getColor, getImage, getImageSize, getPosition, getOpacity, getRepeat, getWidth} from "./css-utils";
 import getStyle from "./styles-extractor";
 
 export default function updateStates(args) {
@@ -53,6 +53,9 @@ export default function updateStates(args) {
             getNthStyleAttrOrAlt('background', 'background-image', 1)
         ) || 'none')
         states.setBackgroundImageSize(getImageSize(
+            getNthStyleAttr('background-size', 1)
+        ) || [null, null])
+        states.setBackgroundImageSize(getPosition(
             getNthStyleAttr('background-size', 1)
         ) || [null, null])
         states.setBackgroundOpacity(getOpacity(

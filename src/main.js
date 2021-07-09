@@ -15,6 +15,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const [backgroundImage, setBackgroundImage] = useState('none')
     // todo: background size two values (from css)
     const [backgroundImageSize, setBackgroundImageSize] = useState([null, null])
+    const [backgroundPosition, setBackgroundPosition] = useState([0, 0])
     const [backgroundOpacity, setBackgroundOpacity] = useState(0)
     const [backgroundRepeat, setBackgroundRepeat] = useState(['repeat', 'repeat'])
 
@@ -39,6 +40,7 @@ export default function RoundDiv({clip, style, children, ...props}) {
         setBackground,
         setBackgroundImage,
         setBackgroundImageSize,
+        setBackgroundPosition,
         setBackgroundOpacity,
         setBackgroundRepeat,
         setBorderColor,

@@ -11,6 +11,10 @@ function _getAttributeFromString(string, method, ...data) {
     }
 }
 
+// eslint-disable-next-line no-extend-native
+String.prototype.matchesValidCSSLength = () =>
+    this.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/)
+
 function _getColor(b, i) {
     const val = b[i]
     // color is a hex code
@@ -61,17 +65,50 @@ function _getImageSize(b, i, element) {
         return [val, null]
     }
 
+    return __getTwoNumerics(b, i, element, htmlBackgroundSizeNotSvgError)
+}
+
+function _getPosition(b, i, element) {
+    // "val" is always what is defined in backgrund-size ([i]th argument)
+    const val = b[i]
+    const allWords = ['top', 'bottom', 'left', 'right', 'center']
+
+    if (b.length === 1 && allWords.includes(val)) {
+        if (val === 'center')
+            return ['center', 'center']
+        else if (['left', 'right'].includes(val))
+            return [val, 0]
+        else if (['top', 'bottom'].includes(val))
+            return [0, val]
+    }
+
+    const a = [0, 0]
+
+    if (allWords.includes(val)) {
+        if (b[i + 1].matchesValidCSSLength()) {
+
+        }
+    }
+
+    /*if (['cover', 'contain'].includes(val)) {
+        return [val, null]
+    }*/
+
+    return __getTwoNumerics(b, i, element, htmlBackgroundPositionNotSvgError)
+}
+
+function __getTwoNumerics(b, i, element, err) {
     const returnIfCSSNumeric = (val, throwErr) => {
         if (val?.endsWith('%'))
             return val
-        else if (val?.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/)) {
-            unitCheck(val, throwErr ? htmlBackgroundSizeNotSvgError : undefined)
+        else if (val?.matchesValidCSSLength()) {
+            unitCheck(val, throwErr ? err : undefined)
             return toPx(element, val)
         } else
             return null
     }
 
-    const convertedVal = returnIfCSSNumeric(val, true) // has null as fallback already
+    const convertedVal = returnIfCSSNumeric(b[i], true) // has null as fallback already
     // "background-size: 50% 50%" is different to "background-size: 50%"
     return [convertedVal, returnIfCSSNumeric(b[i + 1])]
 }
@@ -108,6 +145,8 @@ const htmlBorderLengthNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))
 const htmlBackgroundSizeNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('background size', '"cover", "contain"'))
+const htmlBackgroundPositionNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('background position', '"top", "bottom", "left", "right", "center"'))
 
 function unitCheck(length, err) {
     if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g))
@@ -126,7 +165,7 @@ function _getWidth(border, i, element) {
     if (val.toLowerCase() === 'thick') return 5
     unitCheck(val, htmlBorderLengthNotSvgError)
     // width is <length>
-    if (val.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
+    if (val.matchesValidCSSLength())
         return toPx(element, val)
     return false
 }
@@ -137,6 +176,8 @@ const getWidth = (s, el) => _getAttributeFromString(s, _getWidth, el),
     getImage = s => _getAttributeFromString(s, _getImage),
     /** @returns {Array<string|number>} */
     getImageSize = (s, el) => _getAttributeFromString(s, _getImageSize, el),
+    /** @returns {Array<string|number>} */
+    getPosition = (s, el) => _getAttributeFromString(s, _getPosition, el),
     /** @returns {string} */
     getColor = s => _getAttributeFromString(s, _getColor),
     /** @returns {Array<string>} */
@@ -144,4 +185,4 @@ const getWidth = (s, el) => _getAttributeFromString(s, _getWidth, el),
     /** @returns {number} */
     getOpacity = s => _getAttributeFromString(s, _getOpacity)
 
-export {getWidth, getImage, getImageSize, getColor, getRepeat, getOpacity}
+export {getWidth, getImage, getImageSize, getPosition, getColor, getRepeat, getOpacity}
