@@ -11,17 +11,11 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(0)
 
-    const [background, setBackground] = useState('transparent')
-    const [backgroundImage, setBackgroundImage] = useState('none')
-    // todo: background size two values (from css)
-    const [backgroundImageSize, setBackgroundImageSize] = useState([null, null])
-    const [backgroundPosition, setBackgroundPosition] = useState([0, 0])
-    const [backgroundOpacity, setBackgroundOpacity] = useState(0)
-    const [backgroundRepeat, setBackgroundRepeat] = useState(['repeat', 'repeat'])
+    const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
+    const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(1))
+    const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
 
-    const [borderColor, setBorderColor] = useState('transparent')
-    const [borderWidth, setBorderWidth] = useState(0)
-    const [borderOpacity, setBorderOpacity] = useState(1)
+    const [isFlex, setIsFlex] = useState(false)
 
     const div = useRef()
 
@@ -37,15 +31,10 @@ export default function RoundDiv({clip, style, children, ...props}) {
         setHeight,
         setWidth,
         setRadius,
-        setBackground,
-        setBackgroundImage,
-        setBackgroundImageSize,
-        setBackgroundPosition,
-        setBackgroundOpacity,
-        setBackgroundRepeat,
         setBorderColor,
         setBorderWidth,
-        setBorderOpacity
+        setBorderOpacity,
+        setIsFlex
     }), [style])
 
     useEffect(updateStatesWithArgs, [div, clip, style, updateStatesWithArgs])
@@ -54,64 +43,59 @@ export default function RoundDiv({clip, style, children, ...props}) {
         attachCSSWatcher(() => updateStatesWithArgs())
     }, [updateStatesWithArgs])
 
+    const path = generateSvgSquircle(height, width, radius, clip)
+    const maxBorderWidth = Math.max(...borderWidth)
+    const diffBorderMaxWidthLeftWidth = maxBorderWidth - borderWidth[3]
+    const diffBorderMaxWidthTopWidth = maxBorderWidth - borderWidth[0]
+    // const verticalBorderWidthDelta = maxWidth - borderWidth[2];
+    // const horizontalBorderWidthDelta = maxWidth - borderWidth[1];
+    const borderPath = generateSvgSquircle(
+        height + diffBorderMaxWidthTopWidth + (maxBorderWidth - borderWidth[2]),
+        width + diffBorderMaxWidthLeftWidth + (maxBorderWidth - borderWidth[1]),
+        radius,
+        clip)
+
+    const maskPointsA = {
+        to: -borderWidth[0],
+        ti: borderWidth[0] * 2,
+        ro: width + borderWidth[1],
+        ri: width - borderWidth[1] * 2,
+        bo: height + borderWidth[2],
+        bi: height - borderWidth[2] * 2,
+        lo: -borderWidth[3],
+        li: borderWidth[3] * 2,
+    }
+
+    const maskPoints = {
+        tlo: maskPointsA.lo + ',' + maskPointsA.to,
+        tli: maskPointsA.li + ',' + maskPointsA.ti,
+        tro: maskPointsA.ro + ',' + maskPointsA.to,
+        tri: maskPointsA.ri + ',' + maskPointsA.ti,
+        blo: maskPointsA.lo + ',' + maskPointsA.bo,
+        bli: maskPointsA.li + ',' + maskPointsA.bi,
+        bro: maskPointsA.ro + ',' + maskPointsA.bo,
+        bri: maskPointsA.ri + ',' + maskPointsA.bi,
+    }
+
+    const maskPaths = {
+        top: `M${maskPoints.tli}H${maskPointsA.ri}L${maskPoints.tro}H${maskPointsA.lo}Z`,
+        right: `M${maskPoints.tri}V${maskPointsA.bi}L${maskPoints.bro}V${maskPointsA.to}Z`,
+        bottom: `M${maskPoints.bri}H${maskPointsA.li}L${maskPoints.blo}H${maskPointsA.ro}Z`,
+        left: `M${maskPoints.bli}V${maskPointsA.ti}L${maskPoints.tlo}V${maskPointsA.bo}Z`,
+    }
+
+    // console.log(borderWidth, borderColor, borderOpacity)
+    // console.log(isFlex)
+
+    const svgTransform = isFlex
+        ? `translate(${(borderWidth[1] - borderWidth[3]) / 2}px,${(borderWidth[2] - borderWidth[0]) / 2}px)`
+        : `translate(${(borderWidth[1] - borderWidth[3]) / 2}px,-${borderWidth[0]}px)`
+
     const divStyle = {
-        ...style
+        ...style,
+        clipPath: `path("${path}")`,
+        borderColor: 'transparent'
     }
-
-    divStyle.background = 'transparent'
-    divStyle.borderWidth = '0'
-    divStyle.borderColor = 'transparent'
-
-    const [backgroundImageAspectRatio, setBackgroundImageAspectRatio] = useState(1)
-    // const [backgroundImageHeight, setBackgroundImageHeight] = useState(0)
-    // const [backgroundImageWidth, setBackgroundImageWidth] = useState(0)
-    useEffect(() => {
-        const img = new Image()
-        img.onload = () => {
-            setBackgroundImageAspectRatio(img.naturalWidth / img.naturalHeight)
-            // setBackgroundImageHeight(img.naturalHeight)
-            // setBackgroundImageWidth(img.naturalWidth)
-        }
-        img.src = backgroundImage
-    }, [backgroundImage, setBackgroundImageAspectRatio])
-
-    const fullHeight = height + borderWidth * 2,
-        fullWidth = width + borderWidth * 2
-
-    const lengthCalculator = (isWidth) => {
-        let n = isWidth ? 0 : 1
-
-        if (backgroundImageSize[0] === 'contain')
-            if (backgroundImageAspectRatio > 1)
-                return isWidth ? width : (height / backgroundImageAspectRatio)
-            else
-                return isWidth ? (width * backgroundImageAspectRatio) : height
-
-        if (['cover', 'contain'].includes(backgroundImageSize[0]))
-            return isWidth ? width : height
-
-        if (backgroundImageSize[n] === null && !!backgroundImageSize[0])
-            return lengthCalculator(true) *
-                (backgroundImageAspectRatio < 1
-                    ? 1 / backgroundImageAspectRatio
-                    : backgroundImageAspectRatio
-                )
-
-        if (!backgroundImageSize[n])
-            return undefined
-
-        if (backgroundImageSize[n]?.endsWith('%'))
-            return width * (Number(backgroundImageSize[n].replace('%', '')) / 100)
-
-        if (typeof backgroundImageSize[n] === 'number')
-            return backgroundImageSize[n]
-    }
-
-    const imageHeight = lengthCalculator(false),
-        imageWidth = lengthCalculator(true),
-        preserveImageAspectRatio = (
-            ['cover', 'contain'].includes(backgroundImageSize[0])
-        )
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
@@ -120,35 +104,23 @@ export default function RoundDiv({clip, style, children, ...props}) {
                 height,
                 width: 1,
                 overflow: 'visible',
-                zIndex: -1
+                zIndex: -1,
+                transform: svgTransform
             }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
-                    <path d={
-                        generateSvgSquircle(fullHeight, fullWidth, radius, clip)
-                    } id="shape"/>
-                    {/* todo: support for "repeat: space" and "repeat: round" */}
-                    <pattern id="bg" patternUnits="userSpaceOnUse"
-                             width={backgroundRepeat[0] === 'no-repeat' ? fullWidth : imageWidth}
-                             height={backgroundRepeat[1] === 'no-repeat' ? fullHeight : imageHeight}
-                             x={borderWidth} y={borderWidth}>
-                        <image href={backgroundImage}
-                               preserveAspectRatio={preserveImageAspectRatio ? 'xMinYMin ' + (
-                                   backgroundImageSize[0] === 'contain' || backgroundImageSize[0]?.endsWith('%')
-                                       ? 'meet'
-                                       : 'slice'
-                               ) : 'none'}
-                               height={imageHeight}
-                               width={imageWidth}/>
-                    </pattern>
-
-                    <clipPath id="insideOnly">
-                        <use xlinkHref="#shape" fill="black"/>
-                    </clipPath>
+                    {Object.keys(maskPaths).map(key => (
+                        <clipPath id={key + '-mask'} key={key}>
+                            <path d={maskPaths[key]}
+                                  transform={`translate(${diffBorderMaxWidthLeftWidth},${diffBorderMaxWidthTopWidth})`}/>
+                        </clipPath>
+                    ))}
+                    <path d={borderPath} fill="none" id="border"/>
                 </defs>
-                <use xlinkHref="#shape" fill={backgroundImage !== 'none' ? 'url(#bg)' : background}
-                     opacity={backgroundOpacity} x={-borderWidth} y={-borderWidth}/>
-                <use xlinkHref="#shape" stroke={borderColor} fill="none" strokeWidth={borderWidth * 2}
-                     opacity={borderOpacity} clipPath="url(#insideOnly)" x={-borderWidth} y={-borderWidth}/>
+                {Object.keys(maskPaths).map((key, i) => (
+                    <use href="#border" clipPath={`url(#${key}-mask)`} key={key}
+                         strokeWidth={maxBorderWidth * 2} stroke={borderColor[i]} opacity={borderOpacity[i]}
+                         transform={`translate(${-diffBorderMaxWidthLeftWidth},${-diffBorderMaxWidthTopWidth})`}/>
+                ))}
             </svg>
             <slot/>
         </ShadowRoot>

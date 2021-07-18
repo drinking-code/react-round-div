@@ -1,8 +1,8 @@
-import {getColor, getImage, getImageSize, getPosition, getOpacity, getRepeat, getWidth} from "./css-utils";
+import {convertPlainColor, convertColorOpacity, convertBorderWidth} from "./css-utils";
 import getStyle from "./styles-extractor";
 
 export default function updateStates(args) {
-    const {div, style, setHeight, setWidth} = args
+    const {div, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
     if (boundingClientRect) {
         setHeight(boundingClientRect.height)
@@ -16,28 +16,25 @@ export default function updateStates(args) {
         }).replace(/-/g, '');
     }
 
-    const getNthStyle = (key, n) =>
-            (getStyle(camelise(key), div.current)?.overwritten || [])[n]?.value,
+    const getNthStyle = (key, n) => {
+        const returnNthOverwrittenOrCurrent = r =>
+            !r ? false :
+            r?.overwritten.length > 1
+                ? r.overwritten[n ?? 0].value
+                : r.current?.value
 
-        getNthStyleAttrOrAlt = (...args) => {
-            args = Array.from(args)
-            let n = args.pop()
-            if (typeof n !== 'number') {
-                args.push(n)
-                n = 0
-            }
+        const normal = getStyle(key, div.current);
+        const camelised = getStyle(camelise(key), div.current)
 
-            let a, b, c, d
-            if (args.length === 2)
-                [a, b, c, d] = [args[0], args[1], args[0], args[1]]
-            else if (args.length === 3)
-                [a, b, c, d] = [args[0], args[1], args[1], args[2]]
+        return returnNthOverwrittenOrCurrent(normal) || returnNthOverwrittenOrCurrent(camelised)
+    };
 
-            return style ? style[camelise(a)] || style[camelise(b)]
-                : getNthStyle(c, n) || getNthStyle(d, n)
-        },
-        getNthStyleAttr = (a, n) =>
-            style ? style[camelise(a)] : getNthStyle(a, n)
+    const getBorderStyles = (key, n) => [
+        getNthStyle('border-top-' + key, n),
+        getNthStyle('border-right-' + key, n),
+        getNthStyle('border-bottom-' + key, n),
+        getNthStyle('border-left-' + key, n),
+    ]
 
     const divStyle = div.current ? window?.getComputedStyle(div.current) : null
     if (divStyle) {
@@ -46,35 +43,25 @@ export default function updateStates(args) {
             (divStyle.borderRadius || divStyle.borderTopLeftRadius)
                 .replace('px', ''))
         )
-        states.setBackground(getColor(
-            getNthStyleAttrOrAlt('background', 'background-color', 1)
-        ) || 'transparent')
-        states.setBackgroundImage(getImage(
-            getNthStyleAttrOrAlt('background', 'background-image', 1)
-        ) || 'none')
-        states.setBackgroundImageSize(getImageSize(
-            getNthStyleAttr('background-size', 1)
-        ) || [null, null])
-        states.setBackgroundImageSize(getPosition(
-            getNthStyleAttr('background-size', 1)
-        ) || [null, null])
-        states.setBackgroundOpacity(getOpacity(
-            getNthStyleAttrOrAlt('background', 'background-color', 1)
-        ) || 1)
-        states.setBackgroundRepeat(getRepeat(
-            getNthStyleAttrOrAlt('background', 'background-repeat', 1)
-        ) || ['repeat', 'repeat'])
 
-        states.setBorderColor(getColor(
-            getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
-        ) || 'transparent')
-        states.setBorderOpacity(getOpacity(
-            getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
-        ) || 1)
+        // get color
+        states.setBorderColor(
+            getBorderStyles('color', 1)
+                .map(s => convertPlainColor(s))
+        )
+        // get alpha value of color
+        states.setBorderOpacity(
+            getBorderStyles('color', 1)
+                .map(s => convertColorOpacity(s))
+        )
 
-        states.setBorderWidth(getWidth(
-            getNthStyleAttrOrAlt('border', 'border-width', 'border-top-width', 0),
-            div.current
-        ) || 0)
+        states.setBorderWidth(
+            getBorderStyles('width', 0)
+                .map(s => convertBorderWidth(s, div.current))
+        )
+
+        states.setIsFlex(
+            getNthStyle('display', 0)?.endsWith('flex') || false
+        )
     }
 }
