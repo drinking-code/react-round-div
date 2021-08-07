@@ -1,5 +1,11 @@
-import {convertPlainColor, convertColorOpacity, convertBorderWidth} from "./css-utils";
-import getStyle from "./styles-extractor";
+import {
+    convertPlainColor,
+    convertColorOpacity,
+    convertBorderWidth,
+    toNumber,
+    htmlBorderRadiusNotSvgError
+} from "./css-utils";
+import getStyle from "./external/styles-extractor";
 
 export default function updateStates(args) {
     const {div, setHeight, setWidth} = args
@@ -19,9 +25,9 @@ export default function updateStates(args) {
     const getNthStyle = (key, n) => {
         const returnNthOverwrittenOrCurrent = r =>
             !r ? false :
-            r?.overwritten.length > 1
-                ? r.overwritten[n ?? 0].value
-                : r.current?.value
+                r?.overwritten.length > 1
+                    ? r.overwritten[n ?? 0].value
+                    : r.current?.value
 
         const normal = getStyle(key, div.current);
         const camelised = getStyle(camelise(key), div.current)
@@ -36,12 +42,19 @@ export default function updateStates(args) {
         getNthStyle('border-left-' + key, n),
     ]
 
+    const getBorderRadii = (n) => [
+        getNthStyle('border-top-right-radius', n),
+        getNthStyle('border-top-left-radius', n),
+        getNthStyle('border-bottom-right-radius', n),
+        getNthStyle('border-bottom-left-radius', n),
+    ]
+
     const divStyle = div.current ? window?.getComputedStyle(div.current) : null
     if (divStyle) {
         let states = args
-        states.setRadius(Number(
-            (divStyle.borderRadius || divStyle.borderTopLeftRadius)
-                .replace('px', ''))
+        states.setRadius(
+            getBorderRadii(1)
+                .map(s => toNumber(s, div.current, htmlBorderRadiusNotSvgError))
         )
 
         // get color

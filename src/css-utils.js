@@ -1,5 +1,5 @@
-import CSS_COLOR_NAMES from "./html-colors";
-import toPx from "./css-length-converter";
+import CSS_COLOR_NAMES from "./external/bobspace:html-colors";
+import toPx from "./external/heygrady:units:length";
 
 /** @returns {string} */
 function convertPlainColor(val) {
@@ -31,6 +31,8 @@ function convertColorOpacity(val) {
 const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
 const htmlBorderLengthNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))
+const htmlBorderRadiusNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('border radii'))
 
 function toNumber(length, element, err) {
     if (!length) return false
@@ -58,4 +60,4 @@ function convertBorderWidth(val, element) {
         return toNumber(val, element, htmlBorderLengthNotSvgError) || 0
 }
 
-export {convertPlainColor, convertColorOpacity, convertBorderWidth}
+export {convertPlainColor, convertColorOpacity, convertBorderWidth, toNumber, htmlBorderRadiusNotSvgError}

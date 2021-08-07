@@ -1,15 +1,16 @@
 import React, {useRef, useEffect, useState, useCallback} from 'react'
 import generateSvgSquircle from './generator'
-import './getMatchedCSSRules-polyfill'
+import './external/getMatchedCSSRules-polyfill'
 import updateStates from "./updateStates"
-import ShadowRoot from "./react-shadow-dom"
-import attachCSSWatcher from './style-sheet-watcher'
+import ShadowRoot from "./external/apearce:eact-shadow-dom"
+import attachCSSWatcher from './styleSheetWatcher'
+import getMaskPaths from './mask-generator'
 
-export default function RoundDiv({clip, style, children, ...props}) {
+export default function RoundDiv({style, children, ...props}) {
     // welcome to react states hell
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
-    const [radius, setRadius] = useState(0)
+    const [radius, setRadius] = useState(Array(4).fill(0))
 
     const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
     const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(1))
@@ -37,13 +38,13 @@ export default function RoundDiv({clip, style, children, ...props}) {
         setIsFlex
     }), [style])
 
-    useEffect(updateStatesWithArgs, [div, clip, style, updateStatesWithArgs])
+    useEffect(updateStatesWithArgs, [div, style, updateStatesWithArgs])
 
     useEffect(() => {
         attachCSSWatcher(() => updateStatesWithArgs())
     }, [updateStatesWithArgs])
 
-    const path = generateSvgSquircle(height, width, radius, clip)
+    const path = generateSvgSquircle(height, width, radius)
     const maxBorderWidth = Math.max(...borderWidth)
     const diffBorderMaxWidthLeftWidth = maxBorderWidth - borderWidth[3]
     const diffBorderMaxWidthTopWidth = maxBorderWidth - borderWidth[0]
@@ -52,37 +53,14 @@ export default function RoundDiv({clip, style, children, ...props}) {
     const borderPath = generateSvgSquircle(
         height + diffBorderMaxWidthTopWidth + (maxBorderWidth - borderWidth[2]),
         width + diffBorderMaxWidthLeftWidth + (maxBorderWidth - borderWidth[1]),
-        radius,
-        clip)
+        [
+            radius[0] + maxBorderWidth - Math.min(borderWidth[3], borderWidth[0]),
+            radius[1] + maxBorderWidth - Math.min(borderWidth[0], borderWidth[1]),
+            radius[2] + maxBorderWidth - Math.min(borderWidth[1], borderWidth[2]),
+            radius[3] + maxBorderWidth - Math.min(borderWidth[2], borderWidth[3])
+        ])
 
-    const maskPointsA = {
-        to: -borderWidth[0],
-        ti: borderWidth[0] * 2,
-        ro: width + borderWidth[1],
-        ri: width - borderWidth[1] * 2,
-        bo: height + borderWidth[2],
-        bi: height - borderWidth[2] * 2,
-        lo: -borderWidth[3],
-        li: borderWidth[3] * 2,
-    }
-
-    const maskPoints = {
-        tlo: maskPointsA.lo + ',' + maskPointsA.to,
-        tli: maskPointsA.li + ',' + maskPointsA.ti,
-        tro: maskPointsA.ro + ',' + maskPointsA.to,
-        tri: maskPointsA.ri + ',' + maskPointsA.ti,
-        blo: maskPointsA.lo + ',' + maskPointsA.bo,
-        bli: maskPointsA.li + ',' + maskPointsA.bi,
-        bro: maskPointsA.ro + ',' + maskPointsA.bo,
-        bri: maskPointsA.ri + ',' + maskPointsA.bi,
-    }
-
-    const maskPaths = {
-        top: `M${maskPoints.tli}H${maskPointsA.ri}L${maskPoints.tro}H${maskPointsA.lo}Z`,
-        right: `M${maskPoints.tri}V${maskPointsA.bi}L${maskPoints.bro}V${maskPointsA.to}Z`,
-        bottom: `M${maskPoints.bri}H${maskPointsA.li}L${maskPoints.blo}H${maskPointsA.ro}Z`,
-        left: `M${maskPoints.bli}V${maskPointsA.ti}L${maskPoints.tlo}V${maskPointsA.bo}Z`,
-    }
+    const maskPaths = getMaskPaths(borderWidth, height, width)
 
     // console.log(borderWidth, borderColor, borderOpacity)
     // console.log(isFlex)
