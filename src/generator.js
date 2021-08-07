@@ -45,10 +45,8 @@ export default function generateSvgSquircle(height, width, radius) {
             mapRange(maxRadius, (x / 2) * .90, x / 2, 0, 1),
             1
         )) * 200 / maxRadius,
-        hyOffset = yOffsetF(height),
-        wyOffset = yOffsetF(width)
-
-    console.log(hyOffset, wyOffset)
+        hyOffset = yOffsetF(height) || 0,
+        wyOffset = yOffsetF(width) || 0
 
     const startPoint = `${a0xw},${wyOffset}`
 
@@ -91,5 +89,5 @@ export default function generateSvgSquircle(height, width, radius) {
     C0,${a1x[0]},0,${a2x[0]},${a3y[0]},${a3x[0]}
     C${b1y[0]},${b1x[0]},${b1x[0]},${b1y[0]},${b0x[0]},${b0y[0]}
     C${a2x[0]},0,${a1x[0]},0,${startPoint}
-    Z`.replace(/\n */g, '');
+    Z`.replace(/\n */g, '').replace(/NaN/g, '0');
 }

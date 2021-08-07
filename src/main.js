@@ -45,25 +45,22 @@ export default function RoundDiv({style, children, ...props}) {
     }, [updateStatesWithArgs])
 
     const path = generateSvgSquircle(height, width, radius)
-    const maxBorderWidth = Math.max(...borderWidth)
-    const diffBorderMaxWidthLeftWidth = maxBorderWidth - borderWidth[3]
-    const diffBorderMaxWidthTopWidth = maxBorderWidth - borderWidth[0]
-    // const verticalBorderWidthDelta = maxWidth - borderWidth[2];
-    // const horizontalBorderWidthDelta = maxWidth - borderWidth[1];
-    const borderPath = generateSvgSquircle(
-        height + diffBorderMaxWidthTopWidth + (maxBorderWidth - borderWidth[2]),
-        width + diffBorderMaxWidthLeftWidth + (maxBorderWidth - borderWidth[1]),
-        [
-            radius[0] + maxBorderWidth - Math.min(borderWidth[3], borderWidth[0]),
-            radius[1] + maxBorderWidth - Math.min(borderWidth[0], borderWidth[1]),
-            radius[2] + maxBorderWidth - Math.min(borderWidth[1], borderWidth[2]),
-            radius[3] + maxBorderWidth - Math.min(borderWidth[2], borderWidth[3])
-        ])
+    const innerPath = generateSvgSquircle(
+        height - (borderWidth[0] + borderWidth[2]),
+        width - (borderWidth[1] + borderWidth[3]),
+        radius.map((val, i) =>
+            Math.max(0,
+                val - Math.max(borderWidth[i], borderWidth[i === 0 ? 3 : i - 1])
+            )
+        )
+    ).replace(
+        /(\d+(\.\d+)?),(\d+(\.\d+)?)/g,
+        match => match.split(',').map((number, i) =>
+            Number(number) + (i === 0 ? borderWidth[3] : borderWidth[0])
+        ).join(',')
+    )
 
     const maskPaths = getMaskPaths(borderWidth, height, width)
-
-    // console.log(borderWidth, borderColor, borderOpacity)
-    // console.log(isFlex)
 
     const svgTransform = isFlex
         ? `translate(${(borderWidth[1] - borderWidth[3]) / 2}px,${(borderWidth[2] - borderWidth[0]) / 2}px)`
@@ -86,19 +83,22 @@ export default function RoundDiv({style, children, ...props}) {
                 transform: svgTransform
             }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
-                    {Object.keys(maskPaths).map(key => (
-                        <clipPath id={key + '-mask'} key={key}>
-                            <path d={maskPaths[key]}
-                                  transform={`translate(${diffBorderMaxWidthLeftWidth},${diffBorderMaxWidthTopWidth})`}/>
-                        </clipPath>
-                    ))}
-                    <path d={borderPath} fill="none" id="border"/>
+                    <clipPath id="inner">
+                        <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
+                    </clipPath>
                 </defs>
-                {Object.keys(maskPaths).map((key, i) => (
-                    <use href="#border" clipPath={`url(#${key}-mask)`} key={key}
-                         strokeWidth={maxBorderWidth * 2} stroke={borderColor[i]} opacity={borderOpacity[i]}
-                         transform={`translate(${-diffBorderMaxWidthLeftWidth},${-diffBorderMaxWidthTopWidth})`}/>
-                ))}
+                {Object.keys(maskPaths).map((key, i) => {
+                    if (borderColor[i] === borderColor[i - 1]) return ''
+
+                    let path = maskPaths[key]
+                    while (borderColor[i] === borderColor[i + 1]) {
+                        path += maskPaths[Object.keys(maskPaths)[i + 1]]
+                        i++
+                    }
+
+                    return <path d={path} clipPath={'url(#inner)'} key={key}
+                                 fill={borderColor[i]} opacity={borderOpacity[i]}/>
+                })}
             </svg>
             <slot/>
         </ShadowRoot>

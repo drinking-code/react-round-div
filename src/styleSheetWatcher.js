@@ -13,7 +13,7 @@ const CSSWatcher = new EventTarget()
         if (CSS === newCSS) return
         CSS = newCSS
         CSSWatcher.dispatchEvent(CSSChangeEvent)
-    }, 1000)
+    }, 100)
 })()
 
 function getCSSText() {
