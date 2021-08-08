@@ -28,9 +28,9 @@ const App = () => {
 
 export default App;
 ```
-`react-round-div` will clip the `border-radius` of it is too large to prevent artifacts from appearing. You can turn this off by passing `clip={false}`.
 
 
 ## Caveats
-This package is still in the starting blocks, so for now only single colored backgrounds and solid, uniform borders are supported.  
-There is support to come for gradients and image backgrounds, gradient borders, and perhaps proper `backdrop-filter` support.
+This package is still in the starting blocks, so for now borders are only supported in the `solid` style and some transitions on the div may not work properly.
+
+Moreover, children inside `RoundDiv` get cut off when are placed (partly) outside the div due to `clip-path` being used to make the smooth corners. There will probably an option in later versions to use a pseudo-element for the shape, so that children can be rendered outside.

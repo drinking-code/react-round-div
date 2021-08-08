@@ -1,58 +1,100 @@
-import {getColor, getOpacity, getWidth, unitCheck} from "./css-utils";
-import getStyle from "./styles-extractor";
+import {
+    convertPlainColor,
+    convertColorOpacity,
+    convertBorderWidth,
+    toNumber,
+    htmlBorderRadiusNotSvgError
+} from "./css-utils";
+import getStyle from "./external/styles-extractor";
+import ReactDOM from 'react-dom'
+
+// prevents unnecessary re-renders:
+// single value states (numbers and strings) prevent this out of the box,
+// complex states (objects, arrays, etc.) don't, so here it is manually for arrays (non-nested)
+const lazySetArrayState = (setState, newState) =>
+    setState(oldState => {
+        if (oldState.every((val, i) => val === newState[i])) return oldState
+        else return newState
+    })
 
 export default function updateStates(args) {
-    const {
-        div,
-        style,
-        setHeight,
-        setWidth,
-        setRadius,
-        setBackground,
-        setBackgroundOpacity,
-        setBorderColor,
-        setBorderWidth,
-        setBorderOpacity
-    } = args
+    const {div, setPosition, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
+    let height, width;
     if (boundingClientRect) {
-        setHeight(boundingClientRect.height)
-        setWidth(boundingClientRect.width)
+        lazySetArrayState(setPosition, [boundingClientRect.x, boundingClientRect.y])
+        height = boundingClientRect.height
+        width = boundingClientRect.width
+        setHeight(height)
+        setWidth(width)
     }
-    const divStyle = boundingClientRect ? window?.getComputedStyle(div.current) : null
-    if (divStyle) {
-        setRadius(Number(
-            (divStyle.borderRadius || divStyle.borderTopLeftRadius)
-                .replace('px', '')))
-        setBackground(getColor(
-            style?.background
-            || style?.backgroundColor
-            || (getStyle('background', div.current)?.overwritten || [])[1]?.value
-            || (getStyle('background-color', div.current)?.overwritten || [])[1]?.value
-        ) || 'transparent')
-        setBackgroundOpacity(getOpacity(
-            style?.background
-            || style?.backgroundColor
-            || (getStyle('background', div.current)?.overwritten || [])[1]?.value
-            || (getStyle('background-color', div.current)?.overwritten || [])[1]?.value
-        ) || 1)
-        setBorderColor(getColor(
-            style?.border
-            || style?.borderColor
-            || (getStyle('borderColor', div.current)?.overwritten || [])[1]?.value
-            || (getStyle('borderTopColor', div.current)?.overwritten || [])[1]?.value
-        ) || 'transparent')
-        setBorderWidth(getWidth(
-            style?.border
-            || style?.borderWidth
-            || unitCheck((getStyle('borderWidth', div.current)?.overwritten || [])[0]?.value)
-            || unitCheck((getStyle('borderTopWidth', div.current)?.overwritten || [])[0]?.value),
-            div.current) || 1)
-        setBorderOpacity(getOpacity(
-            style?.border
-            || style?.borderColor
-            || (getStyle('borderColor', div.current)?.overwritten || [])[1]?.value
-            || (getStyle('borderTopColor', div.current)?.overwritten || [])[1]?.value
-        ) || 1)
+
+    function camelise(str) {
+        return str?.replace(/^\w|[A-Z]|\b\w|\s+/g, function (match, index) {
+            if (+match === 0) return "";
+            return index === 0 ? match.toLowerCase() : match.toUpperCase();
+        }).replace(/-/g, '');
     }
+
+    const getNthStyle = (key, n) => {
+        const returnNthOverwrittenOrCurrent = r =>
+            !r ? false :
+                r?.overwritten.length > 0
+                    ? r.overwritten[n ?? 0].value
+                    : r.current?.value
+
+        const normal = getStyle(key, div.current)
+        const camelised = getStyle(camelise(key), div.current)
+
+        return returnNthOverwrittenOrCurrent(normal) || returnNthOverwrittenOrCurrent(camelised)
+    };
+
+    const getBorderStyles = (key, n) => [
+        getNthStyle('border-top-' + key, n),
+        getNthStyle('border-right-' + key, n),
+        getNthStyle('border-bottom-' + key, n),
+        getNthStyle('border-left-' + key, n),
+    ]
+
+    const getBorderRadii = (n) => [
+        getNthStyle('border-top-right-radius', n),
+        getNthStyle('border-top-left-radius', n),
+        getNthStyle('border-bottom-right-radius', n),
+        getNthStyle('border-bottom-left-radius', n),
+    ]
+
+    const states = args
+    const lazySetRadius = newState => lazySetArrayState(states.setRadius, newState),
+        lazySetBorderColor = newState => lazySetArrayState(states.setBorderColor, newState),
+        lazySetBorderOpacity = newState => lazySetArrayState(states.setBorderOpacity, newState),
+        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState)
+
+    const divStyle = div.current ? window?.getComputedStyle(div.current) : null
+    if (!divStyle) return
+    ReactDOM.unstable_batchedUpdates(() => {
+        lazySetRadius(
+            getBorderRadii(1)
+                .map(s => Math.min(
+                    toNumber(s, div.current, htmlBorderRadiusNotSvgError),
+                    height / 2,
+                    width / 2
+                ))
+        )
+
+        // get color
+        lazySetBorderColor(
+            getBorderStyles('color', 1)
+                .map(s => convertPlainColor(s))
+        )
+        // get alpha value of color
+        lazySetBorderOpacity(
+            getBorderStyles('color', 1)
+                .map(s => convertColorOpacity(s))
+        )
+
+        lazySetBorderWidth(
+            getBorderStyles('width', 0)
+                .map(s => convertBorderWidth(s, div.current))
+        )
+    })
 }

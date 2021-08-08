@@ -8,7 +8,7 @@
     <path d="M0,0v50h26c13.3,0,24-10.7,24-24V0H0z"/>
     <text transform="translate(50 70)" class="f1">not hunky-dory</text>
     <text transform="translate(50 78)" class="f2">default html corners</text>
-    <path d="M100,0v50h20c22,0,30-8,30-30V0H100z"/>
+    <path d="M113.3,50c10.6,0,15.9,0,21.5-1.8c6.2-2.3,11.1-7.2,13.4-13.4c1.8-5.7,1.8-10.9,1.8-21.5V0h-50v50H113.3z"/>
     <text transform="translate(150 70)" class="f1">very much hunky-dory</text>
     <text transform="translate(150 78)" class="f2">smooth corners via svg</text>
 </svg>

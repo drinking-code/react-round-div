@@ -1,75 +1,63 @@
-import CSS_COLOR_NAMES from "./html-colors";
-import toPx from "./css-length-converter";
+import CSS_COLOR_NAMES from "./external/bobspace:html-colors";
+import toPx from "./external/heygrady:units:length";
 
-function _getAttributeFromString(string, method, ...data) {
-    if (!string) return false
-    string = string.split(' ')
-    for (let i in string) {
-        const res = method(string, Number(i), ...data)
-        if (res) return res
-    }
-}
-
-function _getColor(border, i) {
-    const val = border[i]
+/** @returns {string} */
+function convertPlainColor(val) {
+    if (!val) return '#000'
+    val = val?.toLowerCase()
     // color is a hex code
-    if (val.toLowerCase().match(/#([0-9a-f]{3}){1,2}/)) return val
+    if (val?.match(/#([0-9a-f]{3}){1,2}/)) return val
     // color is a function (rgb, rgba, hsl, hsla)
-    if (val.startsWith('rgb') || val.startsWith('hsl')) {
-        let color = val;
-        if (!val.endsWith(')'))
-            for (let j = 1; !border[i + j - 1].endsWith(')'); j++) {
-                color += border[i + j]
-            }
-        if (color[3] === 'a')
-            color = color.replace('a', '').replace(/,[^),]+\)/, ')')
-        return color
-    }
+    else if (val?.match(/^(rgb|hsl)a?\(([^,]{1,3},? *){3}(\d*\.?\d+)?\)/))
+        return val
+            .replace('a', '')
+            .replace(/\((([\d%]{1,3}, *){2}([\d%]{1,3}))(, *\d*\.?\d+)?\)/, '($1)')
     // color is a html color name
-    if (
-        CSS_COLOR_NAMES.map(color => color.toLowerCase())
-            .includes(val.toLowerCase())
-    ) return val
-    return false
+    else if (CSS_COLOR_NAMES.map(color => color.toLowerCase())
+        .includes(val.toLowerCase()))
+        return val
+    else if (val === 'currentcolor') {
+        return 'currentcolor'
+    } else return '#000'
 }
 
-function _getOpacity(border, i) {
-    let val = border[i]
-    if (val.startsWith('rgba') || val.startsWith('hsla')) {
-        if (!val.endsWith(')'))
-            for (let j = 1; !border[i + j - 1].endsWith(')'); j++) {
-                val += border[i + j]
-            }
-        return val.replace(/(rgb|hsl)a?\(([^,)]+,){3}/, '').replace(/\)$/, '')
-    }
-    if (border.length - 1 === i)
-        return 1
+/** @returns {number} */
+function convertColorOpacity(val) {
+    if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
+        return Number(val.match(/(\d*\.?\d+)?\)$/)[1])
+    } else return 1
 }
 
-const htmlLengthNotSvgError = new Error('<RoundDiv> Border lengths must be either "thin", "medium", "thick", or in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.')
+const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
+const htmlBorderLengthNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))
+const htmlBorderRadiusNotSvgError =
+    new Error(htmlLengthNotSvgErrorTemplate('border radii'))
 
-function unitCheck(length) {
-    if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g)) throw htmlLengthNotSvgError
-    return length
+function toNumber(length, element, err) {
+    if (!length) return false
+    if (typeof length === 'number' || !length.match(/\D+/))
+        return Number(length);
+    else if (length?.match(/(cap|ic|lh|rlh|vi|vm|vb|Q|mozmm)/g))
+        if (err) throw err
+        else return false
+    else if (length?.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
+        return toPx(element, length)
 }
 
-function _getWidth(border, i, element) {
-    const val = border[i]
-    // width is 0
-    if (val === '0') return 0
+/** @returns {number} */
+function convertBorderWidth(val, element) {
+    if (!val) return 0
     // width is a word
-    if (val.toLowerCase() === 'thin') return 1
-    if (val.toLowerCase() === 'medium') return 3
-    if (val.toLowerCase() === 'thick') return 5
-    unitCheck(val)
+    if (val?.toLowerCase() === 'thin')
+        return 1
+    else if (val?.toLowerCase() === 'medium')
+        return 3
+    else if (val?.toLowerCase() === 'thick')
+        return 5
     // width is <length>
-    if (val.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
-        return toPx(element, val)
-    return false
+    else
+        return toNumber(val, element, htmlBorderLengthNotSvgError) || 0
 }
 
-const getWidth = s => _getAttributeFromString(s, _getWidth),
-    getColor = s => _getAttributeFromString(s, _getColor),
-    getOpacity = s => _getAttributeFromString(s, _getOpacity)
-
-export {getWidth, getColor, unitCheck, getOpacity}
+export {convertPlainColor, convertColorOpacity, convertBorderWidth, toNumber, htmlBorderRadiusNotSvgError}
