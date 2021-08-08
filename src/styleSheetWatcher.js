@@ -13,7 +13,11 @@ const CSSWatcher = new EventTarget()
         if (CSS === newCSS) return
         CSS = newCSS
         CSSWatcher.dispatchEvent(CSSChangeEvent)
-    }, 1000)
+    }, 30)
+    window.addEventListener('resize', () => {
+        CSS = getCSSText()
+        CSSWatcher.dispatchEvent(CSSChangeEvent)
+    })
 })()
 
 function getCSSText() {

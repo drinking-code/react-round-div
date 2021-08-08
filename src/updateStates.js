@@ -1,12 +1,32 @@
-import {getColor, getImage, getImageSize, getPosition, getOpacity, getRepeat, getWidth} from "./css-utils";
-import getStyle from "./styles-extractor";
+import {
+    convertPlainColor,
+    convertColorOpacity,
+    convertBorderWidth,
+    toNumber,
+    htmlBorderRadiusNotSvgError
+} from "./css-utils";
+import getStyle from "./external/styles-extractor";
+import ReactDOM from 'react-dom'
+
+// prevents unnecessary re-renders:
+// single value states (numbers and strings) prevent this out of the box,
+// complex states (objects, arrays, etc.) don't, so here it is manually for arrays (non-nested)
+const lazySetArrayState = (setState, newState) =>
+    setState(oldState => {
+        if (oldState.every((val, i) => val === newState[i])) return oldState
+        else return newState
+    })
 
 export default function updateStates(args) {
-    const {div, style, setHeight, setWidth} = args
+    const {div, setPosition, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
+    let height, width;
     if (boundingClientRect) {
-        setHeight(boundingClientRect.height)
-        setWidth(boundingClientRect.width)
+        lazySetArrayState(setPosition, [boundingClientRect.x, boundingClientRect.y])
+        height = boundingClientRect.height
+        width = boundingClientRect.width
+        setHeight(height)
+        setWidth(width)
     }
 
     function camelise(str) {
@@ -16,65 +36,65 @@ export default function updateStates(args) {
         }).replace(/-/g, '');
     }
 
-    const getNthStyle = (key, n) =>
-            (getStyle(camelise(key), div.current)?.overwritten || [])[n]?.value,
+    const getNthStyle = (key, n) => {
+        const returnNthOverwrittenOrCurrent = r =>
+            !r ? false :
+                r?.overwritten.length > 0
+                    ? r.overwritten[n ?? 0].value
+                    : r.current?.value
 
-        getNthStyleAttrOrAlt = (...args) => {
-            args = Array.from(args)
-            let n = args.pop()
-            if (typeof n !== 'number') {
-                args.push(n)
-                n = 0
-            }
+        const normal = getStyle(key, div.current)
+        const camelised = getStyle(camelise(key), div.current)
 
-            let a, b, c, d
-            if (args.length === 2)
-                [a, b, c, d] = [args[0], args[1], args[0], args[1]]
-            else if (args.length === 3)
-                [a, b, c, d] = [args[0], args[1], args[1], args[2]]
+        return returnNthOverwrittenOrCurrent(normal) || returnNthOverwrittenOrCurrent(camelised)
+    };
 
-            return style ? style[camelise(a)] || style[camelise(b)]
-                : getNthStyle(c, n) || getNthStyle(d, n)
-        },
-        getNthStyleAttr = (a, n) =>
-            style ? style[camelise(a)] : getNthStyle(a, n)
+    const getBorderStyles = (key, n) => [
+        getNthStyle('border-top-' + key, n),
+        getNthStyle('border-right-' + key, n),
+        getNthStyle('border-bottom-' + key, n),
+        getNthStyle('border-left-' + key, n),
+    ]
+
+    const getBorderRadii = (n) => [
+        getNthStyle('border-top-right-radius', n),
+        getNthStyle('border-top-left-radius', n),
+        getNthStyle('border-bottom-right-radius', n),
+        getNthStyle('border-bottom-left-radius', n),
+    ]
+
+    const states = args
+    const lazySetRadius = newState => lazySetArrayState(states.setRadius, newState),
+        lazySetBorderColor = newState => lazySetArrayState(states.setBorderColor, newState),
+        lazySetBorderOpacity = newState => lazySetArrayState(states.setBorderOpacity, newState),
+        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState)
 
     const divStyle = div.current ? window?.getComputedStyle(div.current) : null
-    if (divStyle) {
-        let states = args
-        states.setRadius(Number(
-            (divStyle.borderRadius || divStyle.borderTopLeftRadius)
-                .replace('px', ''))
+    if (!divStyle) return
+    ReactDOM.unstable_batchedUpdates(() => {
+        lazySetRadius(
+            getBorderRadii(1)
+                .map(s => Math.min(
+                    toNumber(s, div.current, htmlBorderRadiusNotSvgError),
+                    height / 2,
+                    width / 2
+                ))
         )
-        states.setBackground(getColor(
-            getNthStyleAttrOrAlt('background', 'background-color', 1)
-        ) || 'transparent')
-        states.setBackgroundImage(getImage(
-            getNthStyleAttrOrAlt('background', 'background-image', 1)
-        ) || 'none')
-        states.setBackgroundImageSize(getImageSize(
-            getNthStyleAttr('background-size', 1)
-        ) || [null, null])
-        states.setBackgroundImageSize(getPosition(
-            getNthStyleAttr('background-size', 1)
-        ) || [null, null])
-        states.setBackgroundOpacity(getOpacity(
-            getNthStyleAttrOrAlt('background', 'background-color', 1)
-        ) || 1)
-        states.setBackgroundRepeat(getRepeat(
-            getNthStyleAttrOrAlt('background', 'background-repeat', 1)
-        ) || ['repeat', 'repeat'])
 
-        states.setBorderColor(getColor(
-            getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
-        ) || 'transparent')
-        states.setBorderOpacity(getOpacity(
-            getNthStyleAttrOrAlt('border', 'border-color', 'border-top-color', 1)
-        ) || 1)
+        // get color
+        lazySetBorderColor(
+            getBorderStyles('color', 1)
+                .map(s => convertPlainColor(s))
+        )
+        // get alpha value of color
+        lazySetBorderOpacity(
+            getBorderStyles('color', 1)
+                .map(s => convertColorOpacity(s))
+        )
 
-        states.setBorderWidth(getWidth(
-            getNthStyleAttrOrAlt('border', 'border-width', 'border-top-width', 0),
-            div.current
-        ) || 0)
-    }
+        lazySetBorderWidth(
+            getBorderStyles('width', 0)
+                .map(s => convertBorderWidth(s, div.current))
+        )
+    })
 }

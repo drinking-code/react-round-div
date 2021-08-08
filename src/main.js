@@ -1,156 +1,120 @@
 import React, {useRef, useEffect, useState, useCallback} from 'react'
 import generateSvgSquircle from './generator'
-import './getMatchedCSSRules-polyfill'
+import './external/getMatchedCSSRules-polyfill'
 import updateStates from "./updateStates"
-import ShadowRoot from "./react-shadow-dom"
-import attachCSSWatcher from './style-sheet-watcher'
+import ShadowRoot from "./external/apearce:eact-shadow-dom"
+import attachCSSWatcher from './styleSheetWatcher'
+import getMaskPaths from './mask-generator'
 
-export default function RoundDiv({clip, style, children, ...props}) {
+export default function RoundDiv({style, children, ...props}) {
     // welcome to react states hell
+    const [position, setPosition] = useState([0, 0])
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
-    const [radius, setRadius] = useState(0)
+    const [radius, setRadius] = useState(Array(4).fill(0))
 
-    const [background, setBackground] = useState('transparent')
-    const [backgroundImage, setBackgroundImage] = useState('none')
-    // todo: background size two values (from css)
-    const [backgroundImageSize, setBackgroundImageSize] = useState([null, null])
-    const [backgroundPosition, setBackgroundPosition] = useState([0, 0])
-    const [backgroundOpacity, setBackgroundOpacity] = useState(0)
-    const [backgroundRepeat, setBackgroundRepeat] = useState(['repeat', 'repeat'])
+    const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
+    const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(1))
+    const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
 
-    const [borderColor, setBorderColor] = useState('transparent')
-    const [borderWidth, setBorderWidth] = useState(0)
-    const [borderOpacity, setBorderOpacity] = useState(1)
+    const [path, setPath] = useState('Z')
+    const [innerPath, setInnerPath] = useState('Z')
+    const [maskPaths, setMaskPaths] = useState('Z')
 
     const div = useRef()
-
-    useEffect(() => {
-        // attach shadow root to div
-        if (!div.current?.shadowRoot)
-            div.current?.attachShadow({mode: 'open'})
-    }, [])
 
     const updateStatesWithArgs = useCallback(() => updateStates({
         div,
         style,
+        setPosition,
         setHeight,
         setWidth,
         setRadius,
-        setBackground,
-        setBackgroundImage,
-        setBackgroundImageSize,
-        setBackgroundPosition,
-        setBackgroundOpacity,
-        setBackgroundRepeat,
         setBorderColor,
         setBorderWidth,
         setBorderOpacity
     }), [style])
 
-    useEffect(updateStatesWithArgs, [div, clip, style, updateStatesWithArgs])
+    useEffect(updateStatesWithArgs, [style, updateStatesWithArgs])
 
     useEffect(() => {
         attachCSSWatcher(() => updateStatesWithArgs())
     }, [updateStatesWithArgs])
 
-    const divStyle = {
-        ...style
-    }
-
-    divStyle.background = 'transparent'
-    divStyle.borderWidth = '0'
-    divStyle.borderColor = 'transparent'
-
-    const [backgroundImageAspectRatio, setBackgroundImageAspectRatio] = useState(1)
-    // const [backgroundImageHeight, setBackgroundImageHeight] = useState(0)
-    // const [backgroundImageWidth, setBackgroundImageWidth] = useState(0)
     useEffect(() => {
-        const img = new Image()
-        img.onload = () => {
-            setBackgroundImageAspectRatio(img.naturalWidth / img.naturalHeight)
-            // setBackgroundImageHeight(img.naturalHeight)
-            // setBackgroundImageWidth(img.naturalWidth)
-        }
-        img.src = backgroundImage
-    }, [backgroundImage, setBackgroundImageAspectRatio])
-
-    const fullHeight = height + borderWidth * 2,
-        fullWidth = width + borderWidth * 2
-
-    const lengthCalculator = (isWidth) => {
-        let n = isWidth ? 0 : 1
-
-        if (backgroundImageSize[0] === 'contain')
-            if (backgroundImageAspectRatio > 1)
-                return isWidth ? width : (height / backgroundImageAspectRatio)
-            else
-                return isWidth ? (width * backgroundImageAspectRatio) : height
-
-        if (['cover', 'contain'].includes(backgroundImageSize[0]))
-            return isWidth ? width : height
-
-        if (backgroundImageSize[n] === null && !!backgroundImageSize[0])
-            return lengthCalculator(true) *
-                (backgroundImageAspectRatio < 1
-                    ? 1 / backgroundImageAspectRatio
-                    : backgroundImageAspectRatio
+        setPath(generateSvgSquircle(height, width, radius))
+        setInnerPath(generateSvgSquircle(
+            height - (borderWidth[0] + borderWidth[2]),
+            width - (borderWidth[1] + borderWidth[3]),
+            radius.map((val, i) =>
+                Math.max(0,
+                    val - Math.max(borderWidth[i], borderWidth[i === 0 ? 3 : i - 1])
                 )
+            )
+        ).replace(
+            /(\d+(\.\d+)?),(\d+(\.\d+)?)/g,
+            match => match.split(',').map((number, i) =>
+                Number(number) + (i === 0 ? borderWidth[3] : borderWidth[0])
+            ).join(',')
+        ))
 
-        if (!backgroundImageSize[n])
-            return undefined
+        // prevents unnecessary re-renders:
+        // single value states (numbers and strings) prevent this out of the box,
+        // complex states (objects, arrays, etc.) don't, so here it is manually for objects (non-nested)
+        const lazySetObjectsState = (setState, newState) =>
+            setState(oldState => {
+                if (areEqualObjects(oldState, newState)) return oldState
+                else return newState
+            })
 
-        if (backgroundImageSize[n]?.endsWith('%'))
-            return width * (Number(backgroundImageSize[n].replace('%', '')) / 100)
+        function areEqualObjects(a, b) {
+            if (Object.keys(a).length !== Object.keys(b).length) return false
+            for (let key in a) {
+                if (a[key] !== b[key]) return false
+            }
+            return true
+        }
 
-        if (typeof backgroundImageSize[n] === 'number')
-            return backgroundImageSize[n]
+        lazySetObjectsState(setMaskPaths, getMaskPaths(borderWidth, height, width, radius))
+    }, [height, width, radius, borderWidth])
+
+
+    const divStyle = {
+        ...style,
+        clipPath: `path("${path}")`,
+        borderColor: 'transparent'
     }
-
-    const imageHeight = lengthCalculator(false),
-        imageWidth = lengthCalculator(true),
-        preserveImageAspectRatio = (
-            ['cover', 'contain'].includes(backgroundImageSize[0])
-        )
 
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
             <svg viewBox={`0 0 ${width} ${height}`} style={{
-                position: 'absolute',
+                position: 'fixed',
+                left: position[0],
+                top: position[1],
                 height,
-                width: 1,
+                width,
                 overflow: 'visible',
-                zIndex: -1
+                zIndex: -1,
             }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
-                    <path d={
-                        generateSvgSquircle(fullHeight, fullWidth, radius, clip)
-                    } id="shape"/>
-                    {/* todo: support for "repeat: space" and "repeat: round" */}
-                    <pattern id="bg" patternUnits="userSpaceOnUse"
-                             width={backgroundRepeat[0] === 'no-repeat' ? fullWidth : imageWidth}
-                             height={backgroundRepeat[1] === 'no-repeat' ? fullHeight : imageHeight}
-                             x={borderWidth} y={borderWidth}>
-                        <image href={backgroundImage}
-                               preserveAspectRatio={preserveImageAspectRatio ? 'xMinYMin ' + (
-                                   backgroundImageSize[0] === 'contain' || backgroundImageSize[0]?.endsWith('%')
-                                       ? 'meet'
-                                       : 'slice'
-                               ) : 'none'}
-                               height={imageHeight}
-                               width={imageWidth}/>
-                    </pattern>
-
-                    <clipPath id="insideOnly">
-                        <use xlinkHref="#shape" fill="black"/>
+                    <clipPath id="inner">
+                        <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
                     </clipPath>
                 </defs>
-                <use xlinkHref="#shape" fill={backgroundImage !== 'none' ? 'url(#bg)' : background}
-                     opacity={backgroundOpacity} x={-borderWidth} y={-borderWidth}/>
-                <use xlinkHref="#shape" stroke={borderColor} fill="none" strokeWidth={borderWidth * 2}
-                     opacity={borderOpacity} clipPath="url(#insideOnly)" x={-borderWidth} y={-borderWidth}/>
+                {Object.keys(maskPaths).map((key, i) => {
+                    if (borderColor[i] === borderColor[i - 1]) return ''
+
+                    let path = maskPaths[key]
+                    while (borderColor[i] === borderColor[i + 1]) {
+                        path += maskPaths[Object.keys(maskPaths)[i + 1]]
+                        i++
+                    }
+
+                    return <path d={path} clipPath={'url(#inner)'} key={key}
+                                 fill={borderColor[i]} opacity={borderOpacity[i]}/>
+                })}
             </svg>
-            <slot/>
+            <slot style={{overflow: 'visible'}}/>
         </ShadowRoot>
         {children}
     </div>
