@@ -8,6 +8,7 @@ import getMaskPaths from './mask-generator'
 
 export default function RoundDiv({style, children, ...props}) {
     // welcome to react states hell
+    const [position, setPosition] = useState([0, 0])
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(Array(4).fill(0))
@@ -16,55 +17,67 @@ export default function RoundDiv({style, children, ...props}) {
     const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(1))
     const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
 
-    const [isFlex, setIsFlex] = useState(false)
+    const [path, setPath] = useState('Z')
+    const [innerPath, setInnerPath] = useState('Z')
+    const [maskPaths, setMaskPaths] = useState('Z')
 
     const div = useRef()
-
-    useEffect(() => {
-        // attach shadow root to div
-        if (!div.current?.shadowRoot)
-            div.current?.attachShadow({mode: 'open'})
-    }, [])
 
     const updateStatesWithArgs = useCallback(() => updateStates({
         div,
         style,
+        setPosition,
         setHeight,
         setWidth,
         setRadius,
         setBorderColor,
         setBorderWidth,
-        setBorderOpacity,
-        setIsFlex
+        setBorderOpacity
     }), [style])
 
-    useEffect(updateStatesWithArgs, [div, style, updateStatesWithArgs])
+    useEffect(updateStatesWithArgs, [style, updateStatesWithArgs])
 
     useEffect(() => {
         attachCSSWatcher(() => updateStatesWithArgs())
     }, [updateStatesWithArgs])
 
-    const path = generateSvgSquircle(height, width, radius)
-    const innerPath = generateSvgSquircle(
-        height - (borderWidth[0] + borderWidth[2]),
-        width - (borderWidth[1] + borderWidth[3]),
-        radius.map((val, i) =>
-            Math.max(0,
-                val - Math.max(borderWidth[i], borderWidth[i === 0 ? 3 : i - 1])
+    useEffect(() => {
+        setPath(generateSvgSquircle(height, width, radius))
+        setInnerPath(generateSvgSquircle(
+            height - (borderWidth[0] + borderWidth[2]),
+            width - (borderWidth[1] + borderWidth[3]),
+            radius.map((val, i) =>
+                Math.max(0,
+                    val - Math.max(borderWidth[i], borderWidth[i === 0 ? 3 : i - 1])
+                )
             )
-        )
-    ).replace(
-        /(\d+(\.\d+)?),(\d+(\.\d+)?)/g,
-        match => match.split(',').map((number, i) =>
-            Number(number) + (i === 0 ? borderWidth[3] : borderWidth[0])
-        ).join(',')
-    )
+        ).replace(
+            /(\d+(\.\d+)?),(\d+(\.\d+)?)/g,
+            match => match.split(',').map((number, i) =>
+                Number(number) + (i === 0 ? borderWidth[3] : borderWidth[0])
+            ).join(',')
+        ))
 
-    const maskPaths = getMaskPaths(borderWidth, height, width)
+        // prevents unnecessary re-renders:
+        // single value states (numbers and strings) prevent this out of the box,
+        // complex states (objects, arrays, etc.) don't, so here it is manually for objects (non-nested)
+        const lazySetObjectsState = (setState, newState) =>
+            setState(oldState => {
+                if (areEqualObjects(oldState, newState)) return oldState
+                else return newState
+            })
 
-    const svgTransform = isFlex
-        ? `translate(${(borderWidth[1] - borderWidth[3]) / 2}px,${(borderWidth[2] - borderWidth[0]) / 2}px)`
-        : `translate(${(borderWidth[1] - borderWidth[3]) / 2}px,-${borderWidth[0]}px)`
+        function areEqualObjects(a, b) {
+            if (Object.keys(a).length !== Object.keys(b).length) return false
+            for (let key in a) {
+                if (a[key] !== b[key]) return false
+            }
+            return true
+        }
+
+        lazySetObjectsState(setMaskPaths, getMaskPaths(borderWidth, height, width, radius))
+    }, [height, width, radius, borderWidth])
+
 
     const divStyle = {
         ...style,
@@ -75,16 +88,17 @@ export default function RoundDiv({style, children, ...props}) {
     return <div {...props} style={divStyle} ref={div}>
         <ShadowRoot>
             <svg viewBox={`0 0 ${width} ${height}`} style={{
-                position: 'absolute',
+                position: 'fixed',
+                left: position[0],
+                top: position[1],
                 height,
-                width: 1,
+                width,
                 overflow: 'visible',
                 zIndex: -1,
-                transform: svgTransform
             }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
                     <clipPath id="inner">
-                        <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
+                        <path d={`M0,0V${height}H${width}V0H0Z` + innerPath} fillRule={'evenodd'}/>
                     </clipPath>
                 </defs>
                 {Object.keys(maskPaths).map((key, i) => {
@@ -100,7 +114,7 @@ export default function RoundDiv({style, children, ...props}) {
                                  fill={borderColor[i]} opacity={borderOpacity[i]}/>
                 })}
             </svg>
-            <slot/>
+            <slot style={{overflow: 'visible'}}/>
         </ShadowRoot>
         {children}
     </div>

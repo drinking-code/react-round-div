@@ -1,7 +1,10 @@
 const CSSChangeEvent = new CustomEvent('css-change');
 
 export default function attachCSSWatcher(callback) {
-    CSSWatcher.addEventListener('css-change', () => callback())
+    // attach later, after loading is done
+    setTimeout(() =>
+            CSSWatcher.addEventListener('css-change', () => callback())
+        , 20)
 }
 
 const CSSWatcher = new EventTarget()
@@ -13,7 +16,11 @@ const CSSWatcher = new EventTarget()
         if (CSS === newCSS) return
         CSS = newCSS
         CSSWatcher.dispatchEvent(CSSChangeEvent)
-    }, 100)
+    }, 30)
+    window.addEventListener('resize', () => {
+        CSS = getCSSText()
+        CSSWatcher.dispatchEvent(CSSChangeEvent)
+    })
 })()
 
 function getCSSText() {

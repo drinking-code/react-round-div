@@ -19,7 +19,23 @@ export default function generateSvgSquircle(height, width, radius) {
     height = Number(height);
     width = Number(width);
 
-    radius = radius.map(radius => Math.min(Number(radius), height / 2, width / 2))
+    const _rawRadius = [...radius].map(n => Number(n))
+    const max = radius.length - 1
+    const next = i => i === max ? 0 : i + 1
+    const prev = i => i === 0 ? max : i - 1
+    radius = _rawRadius.map((radius, i) =>
+        Math.min(
+            radius,
+            Math.min(
+                height - _rawRadius[i % 2 === 0 ? prev(i) : next(i)],
+                height / 2
+            ),
+            Math.min(
+                width - _rawRadius[i % 2 === 0 ? next(i) : prev(i)],
+                width / 2
+            )
+        )
+    )
 
     const [a0x, a1x, a2x, a3y, a3x, b1y, b1x] = Array(7)
             .fill(Array(4).fill(0))
@@ -34,17 +50,13 @@ export default function generateSvgSquircle(height, width, radius) {
         a0xw = a0xF(width),
         a0xh = a0xF(height)
 
-    function mapRange(number, in_min, in_max, out_min, out_max) {
+    /*function mapRange(number, in_min, in_max, out_min, out_max) {
         return (number - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-    }
+    }*/
 
-    const maxRadius = Math.max(...radius);
+    // const maxRadius = Math.max(...radius);
 
-    const yOffsetF = (x) =>
-        Math.max(0, Math.min(
-            mapRange(maxRadius, (x / 2) * .90, x / 2, 0, 1),
-            1
-        )) * 200 / maxRadius,
+    const  yOffsetF = (x) => 0,
         hyOffset = yOffsetF(height) || 0,
         wyOffset = yOffsetF(width) || 0
 

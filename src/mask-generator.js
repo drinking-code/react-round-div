@@ -1,4 +1,4 @@
-export default function getMaskPaths(borderWidth, height, width) {
+export default function getMaskPaths(borderWidth, height, width, radius) {
     const allSides = ['top', 'right', 'bottom', 'left']
     const max = allSides.length - 1
     const next = i => i === max ? 0 : i + 1
@@ -9,7 +9,9 @@ export default function getMaskPaths(borderWidth, height, width) {
      * @type {Array<number>}
      * */
     const allRatios = allSides.map((side, i) =>
-        ((i % 2 === 0 ? height : width) - borderWidth[next(next(i))])
+        ((i % 2 === 0 ? height : width)
+            - Math.max(borderWidth[next(next(i))], radius[prev(i)], radius[prev(prev(i))])
+        )
         / borderWidth[i]
     )
 
@@ -55,10 +57,10 @@ export default function getMaskPaths(borderWidth, height, width) {
         const nextIfH = isH ? nextSide : side
         const nextIfV = !isH ? nextSide : side
 
-        return 'M' + makePoint(prevIfV, prevIfH, true, side) +
+        return ('M' + makePoint(prevIfV, prevIfH, true, side) +
             T + makeValue(nextSide, true, side) +
             'L' + makePoint(nextIfV, nextIfH) +
-            T + makeValue(prevSide) + 'Z'
+            T + makeValue(prevSide) + 'Z').replace(/NaN/g, '0')
     }
 
     return Object.fromEntries(
