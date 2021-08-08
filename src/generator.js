@@ -8,6 +8,7 @@
 export default function generateSvgSquircle(height, width, radius) {
     /* from right to left top left corner upper (right half) */
     const ratios = [1.528665037, 1.0884928889, 0.8684068148, 0.07491140741, 0.6314939259, 0.1690595556, 0.3728238519];
+    const roundToNthPlace = 1;
 
     if (typeof radius === 'number')
         radius = Array(4).fill(radius)
@@ -101,5 +102,10 @@ export default function generateSvgSquircle(height, width, radius) {
     C0,${a1x[0]},0,${a2x[0]},${a3y[0]},${a3x[0]}
     C${b1y[0]},${b1x[0]},${b1x[0]},${b1y[0]},${b0x[0]},${b0y[0]}
     C${a2x[0]},0,${a1x[0]},0,${startPoint}
-    Z`.replace(/\n */g, '').replace(/NaN/g, '0');
+    Z`
+        .replace(/[\n ]/g, '')
+        .replace(/NaN/g, '0')
+        .replace(/\d+\.\d+/g, match =>
+            Math.round(Number(match) * (10 ** roundToNthPlace)) / (10 ** roundToNthPlace)
+        )
 }

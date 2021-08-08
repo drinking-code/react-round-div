@@ -39,7 +39,7 @@ export default function updateStates(args) {
     const getNthStyle = (key, n) => {
         const returnNthOverwrittenOrCurrent = r =>
             !r ? false :
-                r?.overwritten.length > 1
+                r?.overwritten.length > 0
                     ? r.overwritten[n ?? 0].value
                     : r.current?.value
 

@@ -1,10 +1,7 @@
 const CSSChangeEvent = new CustomEvent('css-change');
 
 export default function attachCSSWatcher(callback) {
-    // attach later, after loading is done
-    setTimeout(() =>
-            CSSWatcher.addEventListener('css-change', () => callback())
-        , 20)
+    CSSWatcher.addEventListener('css-change', () => callback())
 }
 
 const CSSWatcher = new EventTarget()

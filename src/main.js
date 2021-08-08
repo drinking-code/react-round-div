@@ -98,7 +98,7 @@ export default function RoundDiv({style, children, ...props}) {
             }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
                 <defs>
                     <clipPath id="inner">
-                        <path d={`M0,0V${height}H${width}V0H0Z` + innerPath} fillRule={'evenodd'}/>
+                        <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
                     </clipPath>
                 </defs>
                 {Object.keys(maskPaths).map((key, i) => {

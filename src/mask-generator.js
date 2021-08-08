@@ -1,4 +1,5 @@
 export default function getMaskPaths(borderWidth, height, width, radius) {
+    // console.log(borderWidth, height, width, radius)
     const allSides = ['top', 'right', 'bottom', 'left']
     const max = allSides.length - 1
     const next = i => i === max ? 0 : i + 1
