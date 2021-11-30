@@ -1,5 +1,6 @@
-import CSS_COLOR_NAMES from "./external/bobspace:html-colors";
-import toPx from "./external/heygrady:units:length";
+import CSS_COLOR_NAMES from './external/bobspace:html-colors';
+
+const toPx = typeof document !== 'undefined' && require('./external/heygrady:units:length');
 
 /** @returns {string} */
 function convertPlainColor(val) {
@@ -42,7 +43,12 @@ function toNumber(length, element, err) {
         if (err) throw err
         else return false
     else if (length?.match(/(\d+(\.\d+)?(ch|cm|em|ex|in|mm|pc|pt|px|rem|vh|vmax|vmin|vw)|0)/))
-        return toPx(element, length)
+        if (typeof toPx === 'function')
+            return toPx(element, length)
+        else if (length.endsWith('px'))
+            return Number(length.substring(0, length.length - 2))
+        else
+            return false
 }
 
 /** @returns {number} */

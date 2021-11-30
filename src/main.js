@@ -2,7 +2,7 @@ import React, {useRef, useEffect, useState, useCallback} from 'react'
 import generateSvgSquircle from './generator'
 import './external/getMatchedCSSRules-polyfill'
 import updateStates from "./updateStates"
-import ShadowRoot from "./external/apearce:eact-shadow-dom"
+import ShadowRoot from "./external/apearce:react-shadow-dom"
 import attachCSSWatcher from './styleSheetWatcher'
 import getMaskPaths from './mask-generator'
 
