@@ -1,5 +1,3 @@
-console.log()
-
 const CSSChangeEvent = typeof CustomEvent !== 'undefined' ? new CustomEvent('css-change') : 'css-change';
 
 export default function attachCSSWatcher(callback) {
@@ -7,6 +5,15 @@ export default function attachCSSWatcher(callback) {
 }
 
 const CSSWatcher = new EventTarget()
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'complete')
+        CSSWatcher.dispatchEvent(CSSChangeEvent)
+    else
+        window.addEventListener('load', () =>
+            CSSWatcher.dispatchEvent(CSSChangeEvent)
+        )
+}
 
 ;(function watchCSS() {
     let CSS = getCSSText()

@@ -3,7 +3,7 @@
  * by apearce
 */
 
-import React from 'react';
+import React, {Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
@@ -67,7 +67,7 @@ export default class ShadowRoot extends React.PureComponent {
 
     render() {
         if (!this.state.initialized) {
-            return <span ref={this.placeholder}></span>;
+            return <span ref={this.placeholder}/>;
         }
 
         return ReactDOM.createPortal(this.props.children, this.shadowRoot);

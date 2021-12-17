@@ -1,6 +1,6 @@
 import CSS_COLOR_NAMES from './external/bobspace:html-colors';
 
-const toPx = typeof document !== 'undefined' && require('./external/heygrady:units:length');
+const toPx = typeof document !== 'undefined' && require('./external/heygrady:units:length').default;
 
 /** @returns {string} */
 function convertPlainColor(val) {
@@ -26,7 +26,7 @@ function convertPlainColor(val) {
 function convertColorOpacity(val) {
     if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
         return Number(val.match(/(\d*\.?\d+)?\)$/)[1])
-    } else return 1
+    } else return 0
 }
 
 const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`

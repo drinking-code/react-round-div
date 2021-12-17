@@ -14,7 +14,7 @@ export default function RoundDiv({style, children, ...props}) {
     const [radius, setRadius] = useState(Array(4).fill(0))
 
     const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
-    const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(1))
+    const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(0))
     const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
 
     const [path, setPath] = useState('Z')
@@ -23,17 +23,19 @@ export default function RoundDiv({style, children, ...props}) {
 
     const div = useRef()
 
-    const updateStatesWithArgs = useCallback(() => updateStates({
-        div,
-        style,
-        setPosition,
-        setHeight,
-        setWidth,
-        setRadius,
-        setBorderColor,
-        setBorderWidth,
-        setBorderOpacity
-    }), [style])
+    const updateStatesWithArgs = useCallback(() => {
+        updateStates({
+            div,
+            style,
+            setPosition,
+            setHeight,
+            setWidth,
+            setRadius,
+            setBorderColor,
+            setBorderWidth,
+            setBorderOpacity
+        })
+    }, [style])
 
     useEffect(updateStatesWithArgs, [style, updateStatesWithArgs])
 
@@ -81,8 +83,9 @@ export default function RoundDiv({style, children, ...props}) {
 
     const divStyle = {
         ...style,
-        clipPath: `path("${path}")`,
-        borderColor: 'transparent'
+        clipPath: (path.startsWith('Z') || path === '') ? '' : `path("${path}")`,
+        borderColor: 'transparent',
+        borderRadius: 0,
     }
 
     return <div {...props} style={divStyle} ref={div}>

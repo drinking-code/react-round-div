@@ -63,7 +63,7 @@ export default function generateSvgSquircle(height, width, radius) {
 
     const startPoint = `${a0xw},${wyOffset}`
 
-    return `M${startPoint}
+    const path = `M${startPoint}
     ${width / 2 < a0x[1]
         ? ''
         : `L${width - a0xw},0`
@@ -108,4 +108,9 @@ export default function generateSvgSquircle(height, width, radius) {
         .replace(/\d+\.\d+/g, match =>
             Math.round(Number(match) * (10 ** roundToNthPlace)) / (10 ** roundToNthPlace)
         )
+
+    if (path.match(/[^ M0LCZ,]/) === null)
+        return ''
+
+    return path
 }
