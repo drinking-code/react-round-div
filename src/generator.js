@@ -51,57 +51,72 @@ export default function generateSvgSquircle(height, width, radius) {
         a0xw = a0xF(width),
         a0xh = a0xF(height)
 
-    /*function mapRange(number, in_min, in_max, out_min, out_max) {
-        return (number - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-    }*/
+    function mapRange(number, inMin, inMax, outMin, outMax) {
+        return (number - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+    }
 
-    // const maxRadius = Math.max(...radius);
+    function clip(number, min, max) {
+        return Math.max(min, Math.min(number, max))
+    }
 
-    const  yOffsetF = (x) => 0,
-        hyOffset = yOffsetF(height) || 0,
-        wyOffset = yOffsetF(width) || 0
+    const yOffsetF = (r1, r2, l) => {
+        if (r1 + r2 < l)
+            return 0
+        else {
+            const maximumStraightLengthRatio = 1 / 6
+            const straightLength = l - (r1 + r2)
+            const straightLengthRatio = straightLength / l
+            const clippedStraightLengthRatio = clip(straightLengthRatio, 0, maximumStraightLengthRatio)
+            const reversedClippedStraightLengthRatio = mapRange(clippedStraightLengthRatio, 0, maximumStraightLengthRatio, maximumStraightLengthRatio, 0)
+            return reversedClippedStraightLengthRatio * l / 14
+        }
+    }
+    const topYOffset = yOffsetF(radius[1], radius[2], width) || 0
+    const rightYOffset = yOffsetF(radius[2], radius[3], height) || 0
+    const bottomYOffset = yOffsetF(radius[3], radius[0], width) || 0
+    const leftYOffset = yOffsetF(radius[0], radius[1], height) || 0
 
-    const startPoint = `${a0xw},${wyOffset}`
+    const startPoint = `${a0xw},${topYOffset}`
 
     const path = `M${startPoint}
-    ${width / 2 < a0x[1]
+    ${width / 2 < a0x[2]
         ? ''
         : `L${width - a0xw},0`
     }
     
-    C${width - a1x[1]},0,${width - a2x[1]},0,${width - a3x[1]},${a3y[1]}
-    C${width - b1x[1]},${b1y[1]},${width - b1y[1]},${b1x[1]},${width - b0y[1]},${b0x[1]}
-    C${width},${a2x[1]},${width},${a1x[1]},
+    C${width - a1x[2]},0,${width - a2x[2]},0,${width - a3x[2]},${a3y[2]}
+    C${width - b1x[2]},${b1y[2]},${width - b1y[2]},${b1x[2]},${width - b0y[2]},${b0x[2]}
+    C${width},${a2x[2]},${width},${a1x[2]},
     
-    ${width - hyOffset},${a0xh}
-    ${height / 2 < a0x[2]
+    ${width - rightYOffset},${a0xh}
+    ${height / 2 < a0x[3]
         ? ''
         : `L${width},${height - a0xh}`
     }
     
-    C${width},${height - a1x[2]},${width},${height - a2x[2]},${width - a3y[2]},${height - a3x[2]}
-    C${width - b1y[2]},${height - b1x[2]},${width - b1x[2]},${height - b1y[2]},${width - b0x[2]},${height - b0y[2]}
-    C${width - a2x[2]},${height},${width - a1x[2]},${height},
+    C${width},${height - a1x[3]},${width},${height - a2x[3]},${width - a3y[3]},${height - a3x[3]}
+    C${width - b1y[3]},${height - b1x[3]},${width - b1x[3]},${height - b1y[3]},${width - b0x[3]},${height - b0y[3]}
+    C${width - a2x[3]},${height},${width - a1x[3]},${height},
     
-    ${width - a0xw},${height - wyOffset}
-    ${width / 2 < a0x[3]
+    ${width - a0xw},${height - bottomYOffset}
+    ${width / 2 < a0x[0]
         ? ''
         : `L${a0xw},${height}`
     }
     
-    C${a1x[3]},${height},${a2x[3]},${height},${a3x[3]},${height - a3y[3]}
-    C${b1x[3]},${height - b1y[3]},${b1y[3]},${height - b1x[3]},${b0y[3]},${height - b0x[3]}
-    C0,${height - a2x[3]},0,${height - a1x[3]},
+    C${a1x[0]},${height},${a2x[0]},${height},${a3x[0]},${height - a3y[0]}
+    C${b1x[0]},${height - b1y[0]},${b1y[0]},${height - b1x[0]},${b0y[0]},${height - b0x[0]}
+    C0,${height - a2x[0]},0,${height - a1x[0]},
     
-    ${hyOffset},${height - a0xh}
-    ${height / 2 < a0x[0]
+    ${leftYOffset},${height - a0xh}
+    ${height / 2 < a0x[1]
         ? ''
         : `L0,${a0xh}`
     }
     
-    C0,${a1x[0]},0,${a2x[0]},${a3y[0]},${a3x[0]}
-    C${b1y[0]},${b1x[0]},${b1x[0]},${b1y[0]},${b0x[0]},${b0y[0]}
-    C${a2x[0]},0,${a1x[0]},0,${startPoint}
+    C0,${a1x[1]},0,${a2x[1]},${a3y[1]},${a3x[1]}
+    C${b1y[1]},${b1x[1]},${b1x[1]},${b1y[1]},${b0x[1]},${b0y[1]}
+    C${a2x[1]},0,${a1x[1]},0,${startPoint}
     Z`
         .replace(/[\n ]/g, '')
         .replace(/NaN/g, '0')
