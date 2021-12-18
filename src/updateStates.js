@@ -40,7 +40,7 @@ export default function updateStates(args) {
         const returnNthOverwrittenOrCurrent = r =>
             !r ? false :
                 r?.overwritten.length > 0
-                    ? r.overwritten[n ?? 0].value
+                    ? r.overwritten[n ?? 0]?.value
                     : r.current?.value
 
         const normal = getStyle(key, div.current)
@@ -73,7 +73,7 @@ export default function updateStates(args) {
     if (!divStyle) return
     ReactDOM.unstable_batchedUpdates(() => {
         lazySetRadius(
-            getBorderRadii(1)
+            getBorderRadii(0)
                 .map(s => Math.min(
                     toNumber(s, div.current, htmlBorderRadiusNotSvgError),
                     height / 2,

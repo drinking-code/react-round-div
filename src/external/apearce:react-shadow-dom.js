@@ -3,23 +3,22 @@
  * by apearce
 */
 
-import React from 'react';
+import React, {Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
-const constructableStylesheetsSupported = window
+const constructableStylesheetsSupported = typeof window !== 'undefined' && window
     && window.ShadowRoot
     && window.ShadowRoot.prototype.hasOwnProperty('adoptedStyleSheets')
     && window.CSSStyleSheet
     && window.CSSStyleSheet.prototype.hasOwnProperty('replace');
 
-const shadowRootSupported = window
+const shadowRootSupported = typeof window !== 'undefined' && window
     && window.Element
     && window.Element.prototype.hasOwnProperty('attachShadow');
 
 export default class ShadowRoot extends React.PureComponent {
     static constructableStylesheetsSupported = constructableStylesheetsSupported;
-    static constructibleStylesheetsSupported = constructableStylesheetsSupported;
     static defaultProps = {
         delegatesFocus: false,
         mode: 'open'
@@ -68,7 +67,7 @@ export default class ShadowRoot extends React.PureComponent {
 
     render() {
         if (!this.state.initialized) {
-            return <span ref={this.placeholder}></span>;
+            return <span ref={this.placeholder}/>;
         }
 
         return ReactDOM.createPortal(this.props.children, this.shadowRoot);
