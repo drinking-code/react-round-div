@@ -38,7 +38,13 @@ if (typeof window !== 'undefined' && typeof window.getMatchedCSSRules !== 'funct
         // if this sheet's media is specified and doesn't match the viewport then skip it
         if (sheet_media && sheet_media.length && !window.matchMedia(sheet_media).matches) return [];
         // get the style rules of this sheet
-        return toArray(stylesheet.cssRules);
+        try {
+            // modification to original (try statement):
+            // firefox doesn't allow accessing "cssRules" of foreign stylesheets => just return empty array
+            return toArray(stylesheet.cssRules);
+        } catch (e) {
+            return [];
+        }
     }
 
     function _find(string, re) {
