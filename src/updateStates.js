@@ -3,19 +3,11 @@ import {
     convertColorOpacity,
     convertBorderWidth,
     toNumber,
-    htmlBorderRadiusNotSvgError
-} from "./css-utils";
-import getStyle from "./external/styles-extractor";
+    htmlBorderRadiusNotSvgError, separateInsetBoxShadow
+} from './utils/css-utils';
+import getAllCssPropertyDeclarationsForElement from './utils/styles-extractor';
 import ReactDOM from 'react-dom'
-
-// prevents unnecessary re-renders:
-// single value states (numbers and strings) prevent this out of the box,
-// complex states (objects, arrays, etc.) don't, so here it is manually for arrays (non-nested)
-const lazySetArrayState = (setState, newState) =>
-    setState(oldState => {
-        if (oldState.every((val, i) => val === newState[i])) return oldState
-        else return newState
-    })
+import {lazySetArrayState, lazySetObjectsState} from './utils/react-utils'
 
 export default function updateStates(args) {
     const {div, setPosition, setHeight, setWidth} = args
@@ -29,45 +21,32 @@ export default function updateStates(args) {
         setWidth(width)
     }
 
-    function camelise(str) {
-        return str?.replace(/^\w|[A-Z]|\b\w|\s+/g, function (match, index) {
-            if (+match === 0) return "";
-            return index === 0 ? match.toLowerCase() : match.toUpperCase();
-        }).replace(/-/g, '');
+    const getNthStyle = (key, n, shorthand) => {
+        const styles = getAllCssPropertyDeclarationsForElement(key, div.current, shorthand)
+        return styles[n]?.declaration?.value
     }
 
-    const getNthStyle = (key, n) => {
-        const returnNthOverwrittenOrCurrent = r =>
-            !r ? false :
-                r?.overwritten.length > 0
-                    ? r.overwritten[n ?? 0]?.value
-                    : r.current?.value
-
-        const normal = getStyle(key, div.current)
-        const camelised = getStyle(camelise(key), div.current)
-
-        return returnNthOverwrittenOrCurrent(normal) || returnNthOverwrittenOrCurrent(camelised)
-    };
-
     const getBorderStyles = (key, n) => [
-        getNthStyle('border-top-' + key, n),
-        getNthStyle('border-right-' + key, n),
-        getNthStyle('border-bottom-' + key, n),
-        getNthStyle('border-left-' + key, n),
+        getNthStyle('border-top-' + key, n, 'border'),
+        getNthStyle('border-right-' + key, n, 'border'),
+        getNthStyle('border-bottom-' + key, n, 'border'),
+        getNthStyle('border-left-' + key, n, 'border'),
     ]
 
     const getBorderRadii = (n) => [
-        getNthStyle('border-top-right-radius', n),
-        getNthStyle('border-top-left-radius', n),
-        getNthStyle('border-bottom-right-radius', n),
-        getNthStyle('border-bottom-left-radius', n),
+        getNthStyle('border-top-right-radius', n, 'border-radius'),
+        getNthStyle('border-top-left-radius', n, 'border-radius'),
+        getNthStyle('border-bottom-right-radius', n, 'border-radius'),
+        getNthStyle('border-bottom-left-radius', n, 'border-radius'),
     ]
 
     const states = args
     const lazySetRadius = newState => lazySetArrayState(states.setRadius, newState),
+        lazySetBackground = newState => lazySetObjectsState(states.setBackground, newState),
         lazySetBorderColor = newState => lazySetArrayState(states.setBorderColor, newState),
         lazySetBorderOpacity = newState => lazySetArrayState(states.setBorderOpacity, newState),
-        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState)
+        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState),
+        lazySetShadows = newState => lazySetArrayState(states.setShadows, newState)
 
     const divStyle = div.current ? window?.getComputedStyle(div.current) : null
     if (!divStyle) return
@@ -79,6 +58,27 @@ export default function updateStates(args) {
                     height / 2,
                     width / 2
                 ))
+        )
+
+        lazySetBackground(
+            Object.fromEntries([
+                'attachment',
+                'clip',
+                'color',
+                'image',
+                'origin',
+                'position',
+                'repeat',
+                'size'
+            ].map(key =>
+                [key, getNthStyle('background-' + key, 1, 'background')]
+            ))
+        )
+
+        lazySetShadows(
+            separateInsetBoxShadow(
+                getNthStyle('box-shadow', 1)
+            )
         )
 
         // get color

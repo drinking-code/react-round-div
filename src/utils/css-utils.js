@@ -1,6 +1,6 @@
-import CSS_COLOR_NAMES from './external/bobspace:html-colors';
+import CSS_COLOR_NAMES from '../external/bobspace:html-colors';
 
-const toPx = typeof document !== 'undefined' && require('./external/heygrady:units:length').default;
+const toPx = typeof document !== 'undefined' && require('../external/heygrady:units:length').default;
 
 /** @returns {string} */
 function convertPlainColor(val) {
@@ -24,9 +24,15 @@ function convertPlainColor(val) {
 
 /** @returns {number} */
 function convertColorOpacity(val) {
-    if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
+    if (val === 'transparent' || val === undefined) {
+        return 0
+    } else if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
         return Number(val.match(/(\d*\.?\d+)?\)$/)[1])
-    } else return 0
+    } else if (CSS_COLOR_NAMES.map(color => color.toLowerCase())
+        .includes(val.toLowerCase()))
+        return 1
+    else
+        return 0
 }
 
 const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
@@ -66,4 +72,30 @@ function convertBorderWidth(val, element) {
         return toNumber(val, element, htmlBorderLengthNotSvgError) || 0
 }
 
-export {convertPlainColor, convertColorOpacity, convertBorderWidth, toNumber, htmlBorderRadiusNotSvgError}
+function separateInsetBoxShadow(val) {
+    if (!val || val === '') return [[], []]
+
+    const insetRegExpString = 'inset'
+    const singleLengthRegExpString = '-?\\d+(\\.\\d+)?[a-zQ]{2,5}'
+    const lengthRegExpString = `(${singleLengthRegExpString} ){2,3}(${singleLengthRegExpString})`
+    const colorRegExpString = '((rgb|hsl)a?|hwb)\\((\\d*\\.?\\d+%?, ?){3}(\\d*\\.?\\d+)\\)|currentcolor|#([0-9a-f]{3}){2}|(' + CSS_COLOR_NAMES.join('|') + ')'
+    const regExpComponent = `(${insetRegExpString}|${lengthRegExpString}|${colorRegExpString})`
+    const regExp = new RegExp(`(${regExpComponent} ){1,2}(${regExpComponent})`, 'g')
+
+    const shadowsWithInset = []
+    const shadowsWithoutInset = []
+    Array.from(val.matchAll(regExp)).map(matches => {
+        const match = matches[0]
+        ;(match.match(/inset/g) ? shadowsWithInset : shadowsWithoutInset).push(match)
+    })
+    return [shadowsWithoutInset, shadowsWithInset]
+}
+
+export {
+    convertPlainColor,
+    convertColorOpacity,
+    convertBorderWidth,
+    toNumber,
+    separateInsetBoxShadow,
+    htmlBorderRadiusNotSvgError
+}

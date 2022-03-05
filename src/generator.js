@@ -120,9 +120,9 @@ export default function generateSvgSquircle(height, width, radius) {
     Z`
         .replace(/[\n ]/g, '')
         .replace(/NaN/g, '0')
-        .replace(/\d+\.\d+/g, match =>
+        /*.replace(/\d+\.\d+/g, match =>
             Math.round(Number(match) * (10 ** roundToNthPlace)) / (10 ** roundToNthPlace)
-        )
+        )*/
 
     if (path.match(/[^ M0LCZ,]/) === null)
         return ''

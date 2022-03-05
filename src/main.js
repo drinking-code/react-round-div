@@ -1,12 +1,20 @@
 import React, {useRef, useEffect, useState, useCallback} from 'react'
-import generateSvgSquircle from './generator'
-import './external/getMatchedCSSRules-polyfill'
-import updateStates from "./updateStates"
-import ShadowRoot from "./external/apearce:react-shadow-dom"
-import attachCSSWatcher from './styleSheetWatcher'
-import getMaskPaths from './mask-generator'
 
-export default function RoundDiv({style, children, ...props}) {
+const ShadowRoot = typeof window !== 'undefined' ? require('react-shadow-root').default : () => 0
+
+import generateSvgSquircle from './generator'
+import getMaskPaths from './mask-generator'
+import attachCSSWatcher from './styleSheetWatcher'
+import updateStates from './updateStates'
+
+import {lazySetObjectsState} from './utils/react-utils'
+import {camelise} from './utils/string-manipulation'
+
+/**
+ * @function RoundDiv
+ * @extends React.PureComponent
+ * */
+export default function RoundDiv({style, children, dontConvertShadow, ...props}) {
     // welcome to react states hell
     const [position, setPosition] = useState([0, 0])
     const [height, setHeight] = useState(0)
@@ -16,6 +24,8 @@ export default function RoundDiv({style, children, ...props}) {
     const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
     const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(0))
     const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
+    const [background, setBackground] = useState({})
+    const [shadows, setShadows] = useState(Array(2).fill([]))
 
     const [path, setPath] = useState('Z')
     const [innerPath, setInnerPath] = useState('Z')
@@ -31,17 +41,21 @@ export default function RoundDiv({style, children, ...props}) {
             setHeight,
             setWidth,
             setRadius,
+            setBackground,
             setBorderColor,
             setBorderWidth,
-            setBorderOpacity
+            setBorderOpacity,
+            setShadows
         })
     }, [style])
 
     useEffect(updateStatesWithArgs, [style, updateStatesWithArgs])
 
     useEffect(() => {
-        attachCSSWatcher(() => updateStatesWithArgs())
+        attachCSSWatcher(() => updateStatesWithArgs()) // todo: make this a react hook
     }, [updateStatesWithArgs])
+
+    const svgRef = useRef();
 
     useEffect(() => {
         setPath(generateSvgSquircle(height, width, radius))
@@ -60,65 +74,79 @@ export default function RoundDiv({style, children, ...props}) {
             ).join(',')
         ))
 
-        // prevents unnecessary re-renders:
-        // single value states (numbers and strings) prevent this out of the box,
-        // complex states (objects, arrays, etc.) don't, so here it is manually for objects (non-nested)
-        const lazySetObjectsState = (setState, newState) =>
-            setState(oldState => {
-                if (areEqualObjects(oldState, newState)) return oldState
-                else return newState
-            })
-
-        function areEqualObjects(a, b) {
-            if (Object.keys(a).length !== Object.keys(b).length) return false
-            for (let key in a) {
-                if (a[key] !== b[key]) return false
-            }
-            return true
-        }
-
         lazySetObjectsState(setMaskPaths, getMaskPaths(borderWidth, height, width, radius))
+
+        // patch for webkit's svg bug
+        if (svgRef.current)
+            setTimeout(() => {
+                svgRef.current.style.position = ''
+                setTimeout(() => {
+                    svgRef.current.style.position = 'fixed'
+                }, 0)
+            }, 0)
     }, [height, width, radius, borderWidth])
 
-
+    const pathIsEmpty = (path.startsWith('Z') || path === '')
     const divStyle = {
         ...style,
-        clipPath: (path.startsWith('Z') || path === '') ? '' : `path("${path}")`,
-        borderColor: 'transparent',
-        borderRadius: 0,
+        ...(pathIsEmpty ? {} : {
+            borderColor: 'transparent',
+            background: 'transparent',
+            boxShadow: dontConvertShadow
+                // "box-shadow" must be overridden for the style extraction to work (with nth: 1, and not nth: 0)
+                ? (shadows[0].length === 0 ? 'none' : shadows[0].join(','))
+                : 'none',
+            // drop shadow only
+            filter: dontConvertShadow ? '' : shadows[0].map(shadowData => `drop-shadow(${shadowData})`).join(' '),
+        })
+    }
+    const shapeComponentStyles = {
+        height,
+        width,
+        position: 'fixed',
+        left: Math.round(position[0]),
+        top: Math.round(position[1]),
+        zIndex: -1,
     }
 
     return <div {...props} style={divStyle} ref={div}>
-        <ShadowRoot>
-            <svg viewBox={`0 0 ${width} ${height}`} style={{
-                position: 'fixed',
-                left: position[0],
-                top: position[1],
-                height,
-                width,
-                overflow: 'visible',
-                zIndex: -1,
-            }} xmlnsXlink="http://www.w3.org/1999/xlink" preserveAspectRatio={'xMidYMid slice'}>
+        {pathIsEmpty ? null : <ShadowRoot>
+            <div style={{
+                ...shapeComponentStyles,
+                clipPath: `path("${path}")`,
+                // inset shadow only
+                boxShadow: shadows[1].join(','),
+                ...(Object.fromEntries(Object.keys(background).map(key => {
+                    return [camelise(key === 'null' ? 'background' : ('background-' + key)), background[key]]
+                }))),
+            }}/>
+            <svg viewBox={`0 0 ${width} ${height}`} style={shapeComponentStyles} preserveAspectRatio={'xMidYMid slice'}
+                 ref={svgRef}>
                 <defs>
-                    <clipPath id="inner">
+                    <clipPath id="inner" clipPathUnits="userSpaceOnUse">
                         <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
                     </clipPath>
+                    <clipPath id="outer" clipPathUnits="userSpaceOnUse">
+                        <path d={path} fillRule={'evenodd'}/>
+                    </clipPath>
                 </defs>
-                {Object.keys(maskPaths).map((key, i) => {
-                    if (borderColor[i] === borderColor[i - 1]) return ''
+                <g clipPath={'url(#outer)'}>
+                    {Object.keys(maskPaths).map((key, i) => {
+                        if (borderColor[i] === borderColor[i - 1]) return ''
 
-                    let path = maskPaths[key]
-                    while (borderColor[i] === borderColor[i + 1]) {
-                        path += maskPaths[Object.keys(maskPaths)[i + 1]]
-                        i++
-                    }
+                        let path = maskPaths[key]
+                        while (borderColor[i] === borderColor[i + 1]) {
+                            path += maskPaths[Object.keys(maskPaths)[i + 1]]
+                            i++
+                        }
 
-                    return <path d={path} clipPath={'url(#inner)'} key={key}
-                                 fill={borderColor[i]} opacity={borderOpacity[i]}/>
-                })}
+                        return <path d={path} clipPath={'url(#inner)'} key={key}
+                                     fill={borderColor[i]} opacity={borderOpacity[i]}/>
+                    })}
+                </g>
             </svg>
             <slot style={{overflow: 'visible'}}/>
-        </ShadowRoot>
+        </ShadowRoot>}
         {children}
     </div>
 }
