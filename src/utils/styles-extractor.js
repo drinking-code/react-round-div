@@ -1,72 +1,66 @@
 import * as specificity from 'specificity'
 import css from 'css'
+import {iterateAllCssRules} from './css-utils'
 
 export default function getAllCssPropertyDeclarationsForElement(targetProperty, targetElement, targetPropertyShorthand) {
     const allCssRules = []
 
-    const debug = (...args) => /*targetProperty === 'background-image' ? console.log(...args) :*/ 0;
-
-    if (targetElement.style[targetProperty] !== '') {
-        allCssRules.push({
-            position: 0,
-            specificity: [1, 0, 0, 0],
-            declaration: {
-                type: 'declaration',
-                property: targetProperty,
-                value: targetElement.style[targetProperty],
-            }
-        })
-    } else if (targetPropertyShorthand && targetElement.style[targetPropertyShorthand] !== '') {
-        allCssRules.push({
-            position: 0,
-            specificity: [1, 0, 0, 0],
-            declaration: {
-                type: 'declaration',
-                property: targetProperty,
-                value: parseCssShorthand(
-                    targetPropertyShorthand,
-                    targetElement.style[targetPropertyShorthand]
-                )[targetProperty],
-            }
-        })
+    const typicalDeclaration = {
+        type: 'declaration',
+        property: targetProperty,
     }
 
-    for (let index in document.styleSheets) {
-        if (!document.styleSheets.hasOwnProperty(index)) continue
-        const styleSheet = document.styleSheets.item(Number(index))
-        if (styleSheet.disabled) continue
-        for (let index in styleSheet.cssRules) {
-            if (!styleSheet.cssRules.hasOwnProperty(index)) continue
-            const rule = styleSheet.cssRules.item(Number(index))
-            try {
-                if (!rule.selectorText || !targetElement.matches(rule.selectorText)) continue
-            } catch (e) {
-                continue
+    const makeFirstInlineRule = value => {
+        return {
+            position: 0,
+            specificity: [1, 0, 0, 0],
+            declaration: {
+                ...typicalDeclaration,
+                value: value,
             }
-            rule.cssParsed = css.parse(rule.cssText)?.stylesheet?.rules[0]?.declarations
-            if (!rule.cssParsed) continue
-            let foundDeclaration = rule.cssParsed.find(dec => dec.property === targetProperty)
-            const foundShorthandDeclaration = rule.cssParsed.find(dec => dec.property === targetPropertyShorthand)
-            if (!foundDeclaration && !foundShorthandDeclaration) continue
-            debug(foundShorthandDeclaration, foundDeclaration)
-            if (foundShorthandDeclaration && !foundDeclaration)
-                foundDeclaration = {
-                    type: 'declaration',
-                    property: targetProperty,
-                    value: parseCssShorthand(
-                        targetPropertyShorthand,
-                        foundShorthandDeclaration.value
-                    )[targetProperty],
-                }
-            allCssRules.push({
-                position: allCssRules.length,
-                specificity: specificity.calculate(rule.selectorText)[0].specificityArray,
-                declaration: foundDeclaration
-            })
         }
     }
 
-    debug(allCssRules)
+    if (targetElement.style[targetProperty] !== '') {
+        allCssRules.push(
+            makeFirstInlineRule(targetElement.style[targetProperty])
+        )
+    } else if (targetPropertyShorthand && targetElement.style[targetPropertyShorthand] !== '') {
+        allCssRules.push(
+            makeFirstInlineRule(
+                parseCssShorthand(
+                    targetPropertyShorthand,
+                    targetElement.style[targetPropertyShorthand]
+                )[targetProperty]
+            )
+        )
+    }
+
+    iterateAllCssRules(rule => {
+        try {
+            if (!rule.selectorText || !targetElement.matches(rule.selectorText)) return
+        } catch (e) {
+            return
+        }
+        rule.cssParsed = css.parse(rule.cssText)?.stylesheet?.rules[0]?.declarations
+        if (!rule.cssParsed) return
+        let foundDeclaration = rule.cssParsed.find(dec => dec.property === targetProperty)
+        const foundShorthandDeclaration = rule.cssParsed.find(dec => dec.property === targetPropertyShorthand)
+        if (!foundDeclaration && !foundShorthandDeclaration) return
+        if (foundShorthandDeclaration && !foundDeclaration)
+            foundDeclaration = {
+                ...typicalDeclaration,
+                value: parseCssShorthand(
+                    targetPropertyShorthand,
+                    foundShorthandDeclaration.value
+                )[targetProperty],
+            }
+        allCssRules.push({
+            position: allCssRules.length,
+            specificity: specificity.calculate(rule.selectorText)[0].specificityArray,
+            declaration: foundDeclaration
+        })
+    })
 
     function isImportant(declarationValue) {
         return /!important/.test(declarationValue)

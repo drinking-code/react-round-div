@@ -3,7 +3,7 @@ import CSS_COLOR_NAMES from '../external/bobspace:html-colors';
 const toPx = typeof document !== 'undefined' && require('../external/heygrady:units:length').default;
 
 /** @returns {string} */
-function convertPlainColor(val) {
+export function convertPlainColor(val) {
     if (!val) return '#000'
     val = val?.toLowerCase()
     // color is a hex code
@@ -23,7 +23,7 @@ function convertPlainColor(val) {
 }
 
 /** @returns {number} */
-function convertColorOpacity(val) {
+export function convertColorOpacity(val) {
     if (val === 'transparent' || val === undefined) {
         return 0
     } else if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
@@ -38,10 +38,10 @@ function convertColorOpacity(val) {
 const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
 const htmlBorderLengthNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))
-const htmlBorderRadiusNotSvgError =
+export const htmlBorderRadiusNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('border radii'))
 
-function toNumber(length, element, err) {
+export function toNumber(length, element, err) {
     if (!length) return false
     if (typeof length === 'number' || !length.match(/\D+/))
         return Number(length);
@@ -58,7 +58,7 @@ function toNumber(length, element, err) {
 }
 
 /** @returns {number} */
-function convertBorderWidth(val, element) {
+export function convertBorderWidth(val, element) {
     if (!val) return 0
     // width is a word
     if (val?.toLowerCase() === 'thin')
@@ -72,7 +72,7 @@ function convertBorderWidth(val, element) {
         return toNumber(val, element, htmlBorderLengthNotSvgError) || 0
 }
 
-function separateInsetBoxShadow(val) {
+export function separateInsetBoxShadow(val) {
     if (!val || val === '') return [[], []]
 
     const insetRegExpString = 'inset'
@@ -91,11 +91,15 @@ function separateInsetBoxShadow(val) {
     return [shadowsWithoutInset, shadowsWithInset]
 }
 
-export {
-    convertPlainColor,
-    convertColorOpacity,
-    convertBorderWidth,
-    toNumber,
-    separateInsetBoxShadow,
-    htmlBorderRadiusNotSvgError
+export function iterateAllCssRules(callback) {
+    for (let index in document.styleSheets) {
+        if (!document.styleSheets.hasOwnProperty(index)) continue
+        const styleSheet = document.styleSheets.item(Number(index))
+        if (styleSheet.disabled) continue
+        for (let index in styleSheet.cssRules) {
+            if (!styleSheet.cssRules.hasOwnProperty(index)) continue
+            const rule = styleSheet.cssRules.item(Number(index))
+            callback(rule, index)
+        }
+    }
 }
