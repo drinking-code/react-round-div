@@ -26,10 +26,22 @@ export default function updateStates(args) {
         return styles[n]?.declaration?.value
     }
 
-    const getBorderStyles = (key, n) => ['top', 'right', 'bottom', 'left']
-        .map(s => getNthStyle('border-' + s + '-' + key, n, 'border'))
+    const getBorderStyles = (key, n) => {
+        let value = ['top', 'right', 'bottom', 'left']
+            .map(s => getNthStyle('border-' + s + '-' + key, n, 'border'))
+        // didn't return any value
+        if (value.filter(v => v).length !== 0) return value
+        value = getNthStyle('border-' + key, n, 'border')
+        // has multiple values for top, bottom, etc.
+        if (!value?.match(' ')) return Array(4).fill(value)
+        value = value.split(' ')
+        // normalize to an array of length 4, for each side
+        if (value.length === 4) return value
+        value = value.concat(value)
+        return value
+    }
 
-    const getBorderRadii = (n) => ['top-right', 'top-left', 'bottom-right', 'bottom-left']
+    const getBorderRadii = (n) => ['top-left', 'top-right', 'bottom-right', 'bottom-left']
         .map(s => getNthStyle('border-' + s + '-radius', n, 'border-radius'))
 
     const states = args

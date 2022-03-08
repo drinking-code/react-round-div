@@ -9,6 +9,13 @@ Here is a very clear demonstration of these smooth corners:
 
 ![Figure showing that these corners are very much hunky-dory](img/compare.svg)
 
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Options](#options)
+    - [`dontConvertShadow`](#dontconvertshadow)
+- [Things to note & caveats](#things-to-note--caveats)
+  - [webpack](#webpack)
+
 ## Installation
 
 ```shell
@@ -33,6 +40,8 @@ const App = () => {
 
 export default App;
 ```
+
+Also, [turn off or polyfill `url`, `path`, and `fs`](#webpack)
 
 ### Options
 
@@ -64,3 +73,24 @@ There are a couple of css properties, that you can't reliably set with `RoundDiv
 You shouldn't set these properties inline. Instead, set them in a stylesheet. This may change in future versions.  
 The `filter` property in particular will not work at all, if you have set a `box-shadow` AND have not
 set [`dontConvertShadow`](#dontconvertshadow). This may also change in future versions.
+
+### webpack
+
+If you use a preprocessor like webpack (which you most likely are), you need to turn off or polyfill the node
+modules `url` and `path`, and turn off `fs`. This is due to the module [`css`](https://www.npmjs.com/package/css), which
+uses them. In webpack, you can do this with
+the [`resolve.fallback.<module_name>`](https://webpack.js.org/configuration/resolve/#resolvefallback) option:
+
+```javascript
+module.exports = {
+    resolve: {
+        fallback: {
+            path: false,
+            url: false,
+            fs: false,
+        }
+    }
+}
+```
+
+If you use `create-react-app`, take a look at [`react-app-rewired`](https://www.npmjs.com/package/react-app-rewired).

@@ -80,14 +80,19 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
         setPath(generateSvgSquircle(height, width, radius))
     }, [height, width, radius, borderWidth])
 
-    // patch for webkit's svg bug
-    if (svgRef.current)
-        setTimeout(() => {
-            svgRef.current.style.position = ''
+    useEffect(() => {
+        // patch for webkit's svg bug
+        if (svgRef.current)
             setTimeout(() => {
-                svgRef.current.style.position = 'fixed'
+                const oldPosition = svgRef.current.style.position || ''
+                svgRef.current.style.display = 'none'
+                svgRef.current.style.position = 'absolute'
+                setTimeout(() => {
+                    svgRef.current.style.display = ''
+                    svgRef.current.style.position = oldPosition
+                }, 10)
             }, 0)
-        }, 0)
+    }, [radius, borderWidth, borderColor, borderOpacity])
 
     const pathIsEmpty = (path.startsWith('Z') || path === '')
     const divStyle = {
@@ -110,7 +115,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
         position: 'fixed',
         left: 0,
         top: 0,
-        transform: `translate(-${padding[3]}px, -${padding[0]}px)`,
+        transform: `translate(-${padding[3] + borderWidth[3]}px, -${padding[0] + borderWidth[0]}px)`,
         zIndex: -1,
     }
 
@@ -129,14 +134,16 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                         return [camelise(key === 'null' ? 'background' : ('background-' + key)), background[key]]
                     }))),
                 }}/>
-                <svg viewBox={`0 0 ${width} ${height}`} style={shapeComponentStyles}
-                     preserveAspectRatio={'xMidYMid slice'}
-                     ref={svgRef}>
+                <svg viewBox={`0 0 ${width} ${height}`} style={{
+                    ...shapeComponentStyles,
+                    overflow: 'visible',
+                }}
+                     preserveAspectRatio={'xMidYMid slice'} ref={svgRef}>
                     <defs>
-                        <clipPath id="inner" clipPathUnits="userSpaceOnUse">
+                        <clipPath id="inner">
                             <path d={`M0,0V${height}H${width}V0Z` + innerPath} fillRule={'evenodd'}/>
                         </clipPath>
-                        <clipPath id="outer" clipPathUnits="userSpaceOnUse">
+                        <clipPath id="outer">
                             <path d={path} fillRule={'evenodd'}/>
                         </clipPath>
                     </defs>
