@@ -70,6 +70,10 @@ export default function updateStates(args) {
                 ))
         )
 
+        states.setTransition(
+            getNthStyle('transition', 0)
+        )
+
         lazySetBackground(
             Object.fromEntries([
                 'attachment',

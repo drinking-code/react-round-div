@@ -11,10 +11,10 @@ Here is a very clear demonstration of these smooth corners:
 
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Options](#options)
-    - [`dontConvertShadow`](#dontconvertshadow)
+    - [Options](#options)
+        - [`dontConvertShadow`](#dontconvertshadow)
 - [Things to note & caveats](#things-to-note--caveats)
-  - [webpack](#webpack)
+    - [webpack](#webpack)
 
 ## Installation
 
@@ -60,8 +60,8 @@ your `box-shadow`s, add the `dontConvertShadow` option:
 
 ## Things to note & caveats
 
-This package is still in the starting blocks, so for now borders are only supported in the `solid` style and transitions
-and animations on the div may not work properly.
+This package is still in the starting blocks, so for now borders are only supported in the `solid` style and some
+transitions, and animations on the div may not work properly.
 
 There are a couple of css properties, that you can't reliably set with `RoundDiv`:
 

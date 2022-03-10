@@ -22,6 +22,8 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(Array(4).fill(0))
 
+    const [transition, setTransition] = useState(Array(4).fill(0))
+
     const [borderColor, setBorderColor] = useState(Array(4).fill('transparent'))
     const [borderOpacity, setBorderOpacity] = useState(Array(4).fill(0))
     const [borderWidth, setBorderWidth] = useState(Array(4).fill(0))
@@ -47,7 +49,8 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
             setBorderColor,
             setBorderWidth,
             setBorderOpacity,
-            setShadows
+            setShadows,
+            setTransition,
         })
     }
 
@@ -133,6 +136,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     ...(Object.fromEntries(Object.keys(background).map(key => {
                         return [camelise(key === 'null' ? 'background' : ('background-' + key)), background[key]]
                     }))),
+                    transition,
                 }}/>
                 <svg viewBox={`0 0 ${width} ${height}`} style={{
                     ...shapeComponentStyles,

@@ -15,10 +15,10 @@ export function detachCSSWatcher(id) {
 }
 
 function watchCSS(callback, element) {
-    let CSS = getCSSText()
+    let CSS = getCSSText(element)
     let style = {...element.style}
     const interval = setInterval(() => {
-        const newCSS = getCSSText()
+        const newCSS = getCSSText(element)
         const newStyle = {...element.style}
         if (CSS === newCSS && areEqualObjects(style, newStyle)) return
         CSS = newCSS
@@ -30,7 +30,7 @@ function watchCSS(callback, element) {
     const forceUpdate = () => {
         clearTimeout(timeout)
         timeout = setTimeout(() => {
-            CSS = getCSSText()
+            CSS = getCSSText(element)
             style = {...element.style}
             callback()
         }, 0)
@@ -46,10 +46,16 @@ function watchCSS(callback, element) {
     }
 }
 
-function getCSSText() {
+function getCSSText(element) {
     let CSS = ''
-    iterateAllCssRules(rule =>
+    iterateAllCssRules(rule => {
+        try {
+            if (!rule.selectorText || !element.matches(rule.selectorText)) return
+        } catch (e) {
+            return
+        }
+        // console.log(rule.selectorText)
         CSS += rule.cssText
-    )
+    })
     return CSS
 }

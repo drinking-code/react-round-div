@@ -42,7 +42,8 @@ export default function getAllCssPropertyDeclarationsForElement(targetProperty, 
         } catch (e) {
             return
         }
-        rule.cssParsed = css.parse(rule.cssText)?.stylesheet?.rules[0]?.declarations
+        if (!rule.cssParsed)
+            rule.cssParsed = css.parse(rule.cssText)?.stylesheet?.rules[0]?.declarations
         if (!rule.cssParsed) return
         let foundDeclaration = rule.cssParsed.find(dec => dec.property === targetProperty)
         const foundShorthandDeclaration = rule.cssParsed.find(dec => dec.property === targetPropertyShorthand)
