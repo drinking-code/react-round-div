@@ -54,7 +54,6 @@ function getCSSText(element) {
         } catch (e) {
             return
         }
-        // console.log(rule.selectorText)
         CSS += rule.cssText
     })
     return CSS

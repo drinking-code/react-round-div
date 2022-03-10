@@ -22,6 +22,13 @@ Here is a very clear demonstration of these smooth corners:
 npm i react-round-div
 ```
 
+#### Size
+
+|                                  |  Gzipped | Minified + Gzipped |
+|----------------------------------|---------:|-------------------:|
+| `react-round-div`                |   7.8 KB |            5.28 KB |
+| `react-round-div` + dependencies | 14.97 KB |        **9.17 KB** |
+
 ## Usage
 
 Simply import the package and replace any divs with rounded corners (`border-radius`) that you want to

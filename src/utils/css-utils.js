@@ -2,39 +2,6 @@ import CSS_COLOR_NAMES from '../external/bobspace:html-colors';
 
 const toPx = typeof document !== 'undefined' && require('../external/heygrady:units:length').default;
 
-/** @returns {string} */
-export function convertPlainColor(val) {
-    if (!val) return '#000'
-    val = val?.toLowerCase()
-    // color is a hex code
-    if (val?.match(/#([0-9a-f]{3}){1,2}/)) return val
-    // color is a function (rgb, rgba, hsl, hsla)
-    else if (val?.match(/^(rgb|hsl)a?\(([^,]{1,3},? *){3}(\d*\.?\d+)?\)/))
-        return val
-            .replace('a', '')
-            .replace(/\((([\d%]{1,3}, *){2}([\d%]{1,3}))(, *\d*\.?\d+)?\)/, '($1)')
-    // color is a html color name
-    else if (CSS_COLOR_NAMES.map(color => color.toLowerCase())
-        .includes(val.toLowerCase()))
-        return val
-    else if (val === 'currentcolor') {
-        return 'currentcolor'
-    } else return '#000'
-}
-
-/** @returns {number} */
-export function convertColorOpacity(val) {
-    if (val === 'transparent' || val === undefined) {
-        return 0
-    } else if (val?.startsWith('rgba') || val?.startsWith('hsla')) {
-        return Number(val.match(/(\d*\.?\d+)?\)$/)[1])
-    } else if (CSS_COLOR_NAMES.map(color => color.toLowerCase())
-        .includes(val.toLowerCase()))
-        return 1
-    else
-        return 0
-}
-
 const htmlLengthNotSvgErrorTemplate = (a, b) => `<RoundDiv> ${a} must be ${b ? `either ${b}, or` : ''} in one of the following units: ch, cm, em, ex, in, mm, pc, pt, px, rem, vh, vmax, vmin, vw.`
 const htmlBorderLengthNotSvgError =
     new Error(htmlLengthNotSvgErrorTemplate('border lengths', '"thin", "medium", "thick"'))

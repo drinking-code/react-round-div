@@ -1,20 +1,18 @@
 import {
-    convertPlainColor,
-    convertColorOpacity,
     convertBorderWidth,
     toNumber,
-    htmlBorderRadiusNotSvgError, separateInsetBoxShadow
+    htmlBorderRadiusNotSvgError,
+    separateInsetBoxShadow
 } from './utils/css-utils';
 import getAllCssPropertyDeclarationsForElement from './utils/styles-extractor';
 import ReactDOM from 'react-dom'
 import {lazySetArrayState, lazySetObjectsState} from './utils/react-utils'
 
 export default function updateStates(args) {
-    const {div, /*setPosition,*/ setHeight, setWidth} = args
+    const {div, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
     let height, width;
     if (boundingClientRect) {
-        // lazySetArrayState(setPosition, [boundingClientRect.x, boundingClientRect.y])
         height = boundingClientRect.height
         width = boundingClientRect.width
         setHeight(height)
@@ -26,34 +24,16 @@ export default function updateStates(args) {
         return styles[n]?.declaration?.value
     }
 
-    const getBorderStyles = (key, n) => {
-        let value = ['top', 'right', 'bottom', 'left']
-            .map(s => getNthStyle('border-' + s + '-' + key, n, 'border'))
-        // didn't return any value
-        if (value.filter(v => v).length !== 0) return value
-        value = getNthStyle('border-' + key, n, 'border')
-        // has multiple values for top, bottom, etc.
-        if (!value?.match(' ')) return Array(4).fill(value)
-        value = value.split(' ')
-        // normalize to an array of length 4, for each side
-        if (value.length === 4) return value
-        value = value.concat(value)
-        return value
-    }
-
     const getBorderRadii = (n) => ['top-left', 'top-right', 'bottom-right', 'bottom-left']
         .map(s => getNthStyle('border-' + s + '-radius', n, 'border-radius'))
 
     const states = args
     const lazySetRadius = newState => lazySetArrayState(states.setRadius, newState),
         lazySetBackground = newState => lazySetObjectsState(states.setBackground, newState),
-        lazySetBorderColor = newState => lazySetArrayState(states.setBorderColor, newState),
-        lazySetBorderOpacity = newState => lazySetArrayState(states.setBorderOpacity, newState),
-        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState),
+        lazySetBorder = newState => lazySetObjectsState(states.setBorder, newState),
+        lazySetBorderImage = newState => lazySetObjectsState(states.setBorderImage, newState),
         lazySetShadows = newState => lazySetArrayState(states.setShadows, newState)
 
-    const divStyle = div.current ? window?.getComputedStyle(div.current) : null
-    if (!divStyle) return
     ReactDOM.unstable_batchedUpdates(() => {
         states.setPadding(
             ['top', 'right', 'bottom', 'left']
@@ -89,26 +69,42 @@ export default function updateStates(args) {
             ))
         )
 
+        const border = Object.fromEntries([
+            'color',
+            'style',
+            'width',
+        ].map(key =>
+            [key, getNthStyle('border-' + key, 1, 'border')]
+        ))
+        border.width = border.width?.split(' ')
+            ?.map(s => convertBorderWidth(s, div.current))
+
+        if (border.width?.length === 1)
+            border.width = Array(4).fill(border.width[0])
+        else if (border.width?.length === 2)
+            border.width = border.width.concat(border.width)
+        else if (border.width?.length === 3)
+            border.width[4] = border.width[2]
+
+        border.width = border.width ?? Array(4).fill(0)
+        lazySetBorder(border)
+
+        lazySetBorderImage(
+            Object.fromEntries([
+                'outset',
+                'repeat',
+                'slice',
+                'source',
+                'width',
+            ].map(key =>
+                [key, getNthStyle('border-image-' + key, 1, 'border-image')]
+            ))
+        )
+
         lazySetShadows(
             separateInsetBoxShadow(
                 getNthStyle('box-shadow', 1)
             )
-        )
-
-        // get color
-        lazySetBorderColor(
-            getBorderStyles('color', 1)
-                .map(s => convertPlainColor(s))
-        )
-        // get alpha value of color
-        lazySetBorderOpacity(
-            getBorderStyles('color', 1)
-                .map(s => convertColorOpacity(s))
-        )
-
-        lazySetBorderWidth(
-            getBorderStyles('width', 0)
-                .map(s => convertBorderWidth(s, div.current))
         )
     })
 }

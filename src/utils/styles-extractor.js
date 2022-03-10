@@ -1,5 +1,5 @@
 import * as specificity from 'specificity'
-import css from 'css'
+import {default as parseCss} from 'css/lib/parse'
 import {iterateAllCssRules} from './css-utils'
 
 export default function getAllCssPropertyDeclarationsForElement(targetProperty, targetElement, targetPropertyShorthand) {
@@ -43,7 +43,7 @@ export default function getAllCssPropertyDeclarationsForElement(targetProperty, 
             return
         }
         if (!rule.cssParsed)
-            rule.cssParsed = css.parse(rule.cssText)?.stylesheet?.rules[0]?.declarations
+            rule.cssParsed = parseCss(rule.cssText)?.stylesheet?.rules[0]?.declarations
         if (!rule.cssParsed) return
         let foundDeclaration = rule.cssParsed.find(dec => dec.property === targetProperty)
         const foundShorthandDeclaration = rule.cssParsed.find(dec => dec.property === targetPropertyShorthand)
