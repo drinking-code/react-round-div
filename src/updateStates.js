@@ -1,100 +1,115 @@
 import {
-    convertPlainColor,
-    convertColorOpacity,
     convertBorderWidth,
     toNumber,
-    htmlBorderRadiusNotSvgError
-} from "./css-utils";
-import getStyle from "./external/styles-extractor";
+    separateInsetBoxShadow
+} from './utils/css-utils';
+import getAllCssPropertyDeclarationsForElement from './utils/styles-extractor';
 import ReactDOM from 'react-dom'
-
-// prevents unnecessary re-renders:
-// single value states (numbers and strings) prevent this out of the box,
-// complex states (objects, arrays, etc.) don't, so here it is manually for arrays (non-nested)
-const lazySetArrayState = (setState, newState) =>
-    setState(oldState => {
-        if (oldState.every((val, i) => val === newState[i])) return oldState
-        else return newState
-    })
+import {lazySetArrayState, lazySetObjectsState} from './utils/react-utils'
 
 export default function updateStates(args) {
-    const {div, setPosition, setHeight, setWidth} = args
+    const {div, setHeight, setWidth} = args
     const boundingClientRect = div.current?.getBoundingClientRect()
     let height, width;
     if (boundingClientRect) {
-        lazySetArrayState(setPosition, [boundingClientRect.x, boundingClientRect.y])
         height = boundingClientRect.height
         width = boundingClientRect.width
         setHeight(height)
         setWidth(width)
     }
 
-    function camelise(str) {
-        return str?.replace(/^\w|[A-Z]|\b\w|\s+/g, function (match, index) {
-            if (+match === 0) return "";
-            return index === 0 ? match.toLowerCase() : match.toUpperCase();
-        }).replace(/-/g, '');
+    const getNthStyle = (key, n, shorthand) => {
+        const styles = getAllCssPropertyDeclarationsForElement(key, div.current, shorthand)
+        return styles[n]?.declaration?.value
     }
 
-    const getNthStyle = (key, n) => {
-        const returnNthOverwrittenOrCurrent = r =>
-            !r ? false :
-                r?.overwritten.length > 0
-                    ? r.overwritten[n ?? 0]?.value
-                    : r.current?.value
-
-        const normal = getStyle(key, div.current)
-        const camelised = getStyle(camelise(key), div.current)
-
-        return returnNthOverwrittenOrCurrent(normal) || returnNthOverwrittenOrCurrent(camelised)
-    };
-
-    const getBorderStyles = (key, n) => [
-        getNthStyle('border-top-' + key, n),
-        getNthStyle('border-right-' + key, n),
-        getNthStyle('border-bottom-' + key, n),
-        getNthStyle('border-left-' + key, n),
-    ]
-
-    const getBorderRadii = (n) => [
-        getNthStyle('border-top-right-radius', n),
-        getNthStyle('border-top-left-radius', n),
-        getNthStyle('border-bottom-right-radius', n),
-        getNthStyle('border-bottom-left-radius', n),
-    ]
+    const getBorderRadii = (n) => ['top-left', 'top-right', 'bottom-right', 'bottom-left']
+        .map(s => getNthStyle('border-' + s + '-radius', n, 'border-radius'))
 
     const states = args
     const lazySetRadius = newState => lazySetArrayState(states.setRadius, newState),
-        lazySetBorderColor = newState => lazySetArrayState(states.setBorderColor, newState),
-        lazySetBorderOpacity = newState => lazySetArrayState(states.setBorderOpacity, newState),
-        lazySetBorderWidth = newState => lazySetArrayState(states.setBorderWidth, newState)
+        lazySetBackground = newState => lazySetObjectsState(states.setBackground, newState),
+        lazySetBorder = newState => lazySetObjectsState(states.setBorder, newState),
+        lazySetBorderImage = newState => lazySetObjectsState(states.setBorderImage, newState),
+        lazySetShadows = newState => lazySetArrayState(states.setShadows, newState)
 
-    const divStyle = div.current ? window?.getComputedStyle(div.current) : null
-    if (!divStyle) return
+    const oneIfStylesAreOverridden = args.div?.current?.dataset.rrdOverwritten === 'true' ? 1 : 0
+
     ReactDOM.unstable_batchedUpdates(() => {
+        states.setPadding(
+            ['top', 'right', 'bottom', 'left']
+                .map(s => getNthStyle('padding-' + s, 0, 'padding'))
+                .map(n => toNumber(n, div.current) || 0)
+        )
+
         lazySetRadius(
             getBorderRadii(0)
                 .map(s => Math.min(
-                    toNumber(s, div.current, htmlBorderRadiusNotSvgError),
+                    toNumber(s, div.current),
                     height / 2,
                     width / 2
                 ))
         )
 
-        // get color
-        lazySetBorderColor(
-            getBorderStyles('color', 1)
-                .map(s => convertPlainColor(s))
-        )
-        // get alpha value of color
-        lazySetBorderOpacity(
-            getBorderStyles('color', 1)
-                .map(s => convertColorOpacity(s))
+        states.setTransition(
+            getNthStyle('transition', 0)
         )
 
-        lazySetBorderWidth(
-            getBorderStyles('width', 0)
-                .map(s => convertBorderWidth(s, div.current))
+        states.setBoxSizing(
+            getNthStyle('box-sizing', 0) || 'content-box'
+        )
+
+        lazySetBackground(
+            Object.fromEntries([
+                'attachment',
+                'clip',
+                'color',
+                'image',
+                'origin',
+                'position',
+                'repeat',
+                'size'
+            ].map(key =>
+                [key, getNthStyle('background-' + key, oneIfStylesAreOverridden, 'background')]
+            ))
+        )
+
+        const border = Object.fromEntries([
+            'color',
+            'style',
+            'width',
+        ].map(key =>
+            [key, getNthStyle('border-' + key, oneIfStylesAreOverridden, 'border')]
+        ))
+        border.width = border.width?.split(' ')
+            ?.map(s => convertBorderWidth(s, div.current))
+
+        if (border.width?.length === 1)
+            border.width = Array(4).fill(border.width[0])
+        else if (border.width?.length === 2)
+            border.width = border.width.concat(border.width)
+        else if (border.width?.length === 3)
+            border.width[4] = border.width[2]
+
+        border.width = border.width ?? Array(4).fill(0)
+        lazySetBorder(border)
+
+        lazySetBorderImage(
+            Object.fromEntries([
+                'outset',
+                'repeat',
+                'slice',
+                'source',
+                'width',
+            ].map(key =>
+                [key, getNthStyle('border-image-' + key, oneIfStylesAreOverridden, 'border-image')]
+            ))
+        )
+
+        lazySetShadows(
+            separateInsetBoxShadow(
+                getNthStyle('box-shadow', oneIfStylesAreOverridden)
+            )
         )
     })
 }

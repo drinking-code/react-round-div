@@ -1,44 +1,60 @@
-const CSSChangeEvent = typeof CustomEvent !== 'undefined' ? new CustomEvent('css-change') : 'css-change';
+import {iterateAllCssRules} from './utils/css-utils'
+import {areEqualObjects} from './utils/assert'
 
-export default function attachCSSWatcher(callback) {
-    CSSWatcher.addEventListener('css-change', () => callback())
+let id = 0
+const listeners = []
+
+export function attachCSSWatcher(callback, element) {
+    listeners[id] = watchCSS(callback, element)
+    return id++
 }
 
-const CSSWatcher = new EventTarget()
-
-if (typeof document !== 'undefined') {
-    if (document.readyState === 'complete')
-        CSSWatcher.dispatchEvent(CSSChangeEvent)
-    else
-        window.addEventListener('load', () =>
-            CSSWatcher.dispatchEvent(CSSChangeEvent)
-        )
+export function detachCSSWatcher(id) {
+    listeners[id]()
+    delete listeners[id]
 }
 
-;(function watchCSS() {
-    let CSS = getCSSText()
-    setInterval(() => {
-        const newCSS = getCSSText()
-        if (CSS === newCSS) return
+function watchCSS(callback, element) {
+    let CSS = getCSSText(element)
+    let style = {...element.style}
+    const interval = setInterval(() => {
+        const newCSS = getCSSText(element)
+        const newStyle = {...element.style}
+        if (CSS === newCSS && areEqualObjects(style, newStyle)) return
         CSS = newCSS
-        CSSWatcher.dispatchEvent(CSSChangeEvent)
-    }, 30)
+        style = newStyle
+        callback()
+    }, 50)
 
-    if (typeof window === 'undefined') return
-    window.addEventListener('resize', () => {
-        CSS = getCSSText()
-        CSSWatcher.dispatchEvent(CSSChangeEvent)
-    })
-})()
-
-function getCSSText() {
-    if (typeof document === 'undefined') return ''
-    let CSS = ''
-    for (let i = 0; i < document.styleSheets.length; i++) {
-        const sheet = document.styleSheets[i]
-        for (let j = 0; j < sheet.rules.length; j++) {
-            CSS += sheet.rules[j].cssText
-        }
+    let timeout
+    const forceUpdate = () => {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+            CSS = getCSSText(element)
+            style = {...element.style}
+            callback()
+        }, 0)
     }
+
+    window.addEventListener('resize', forceUpdate)
+    window.addEventListener('scroll', forceUpdate, {passive: true})
+
+    return () => {
+        clearInterval(interval)
+        window.removeEventListener('resize', forceUpdate)
+        window.removeEventListener('scroll', forceUpdate, {passive: true})
+    }
+}
+
+function getCSSText(element) {
+    let CSS = ''
+    iterateAllCssRules(rule => {
+        try {
+            if (!rule.selectorText || !element.matches(rule.selectorText)) return
+        } catch (e) {
+            return
+        }
+        CSS += rule.cssText
+    })
     return CSS
 }

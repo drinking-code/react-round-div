@@ -8,7 +8,7 @@
 export default function generateSvgSquircle(height, width, radius) {
     /* from right to left top left corner upper (right half) */
     const ratios = [1.528665037, 1.0884928889, 0.8684068148, 0.07491140741, 0.6314939259, 0.1690595556, 0.3728238519];
-    const roundToNthPlace = 1;
+    // const roundToNthPlace = 1;
 
     if (typeof radius === 'number')
         radius = Array(4).fill(radius)
@@ -79,50 +79,50 @@ export default function generateSvgSquircle(height, width, radius) {
     const startPoint = `${a0xw},${topYOffset}`
 
     const path = `M${startPoint}
-    ${width / 2 < a0x[2]
+    ${width / 2 < a0x[1]
         ? ''
         : `L${width - a0xw},0`
     }
     
-    C${width - a1x[2]},0,${width - a2x[2]},0,${width - a3x[2]},${a3y[2]}
-    C${width - b1x[2]},${b1y[2]},${width - b1y[2]},${b1x[2]},${width - b0y[2]},${b0x[2]}
-    C${width},${a2x[2]},${width},${a1x[2]},
+    C${width - a1x[1]},0,${width - a2x[1]},0,${width - a3x[1]},${a3y[1]}
+    C${width - b1x[1]},${b1y[1]},${width - b1y[1]},${b1x[1]},${width - b0y[1]},${b0x[1]}
+    C${width},${a2x[1]},${width},${a1x[1]},
     
     ${width - rightYOffset},${a0xh}
-    ${height / 2 < a0x[3]
+    ${height / 2 < a0x[2]
         ? ''
         : `L${width},${height - a0xh}`
     }
     
-    C${width},${height - a1x[3]},${width},${height - a2x[3]},${width - a3y[3]},${height - a3x[3]}
-    C${width - b1y[3]},${height - b1x[3]},${width - b1x[3]},${height - b1y[3]},${width - b0x[3]},${height - b0y[3]}
-    C${width - a2x[3]},${height},${width - a1x[3]},${height},
+    C${width},${height - a1x[2]},${width},${height - a2x[2]},${width - a3y[2]},${height - a3x[2]}
+    C${width - b1y[2]},${height - b1x[2]},${width - b1x[2]},${height - b1y[2]},${width - b0x[2]},${height - b0y[2]}
+    C${width - a2x[2]},${height},${width - a1x[2]},${height},
     
     ${width - a0xw},${height - bottomYOffset}
-    ${width / 2 < a0x[0]
+    ${width / 2 < a0x[3]
         ? ''
         : `L${a0xw},${height}`
     }
     
-    C${a1x[0]},${height},${a2x[0]},${height},${a3x[0]},${height - a3y[0]}
-    C${b1x[0]},${height - b1y[0]},${b1y[0]},${height - b1x[0]},${b0y[0]},${height - b0x[0]}
-    C0,${height - a2x[0]},0,${height - a1x[0]},
+    C${a1x[3]},${height},${a2x[3]},${height},${a3x[3]},${height - a3y[3]}
+    C${b1x[3]},${height - b1y[3]},${b1y[3]},${height - b1x[3]},${b0y[3]},${height - b0x[3]}
+    C0,${height - a2x[3]},0,${height - a1x[3]},
     
     ${leftYOffset},${height - a0xh}
-    ${height / 2 < a0x[1]
+    ${height / 2 < a0x[0]
         ? ''
         : `L0,${a0xh}`
     }
     
-    C0,${a1x[1]},0,${a2x[1]},${a3y[1]},${a3x[1]}
-    C${b1y[1]},${b1x[1]},${b1x[1]},${b1y[1]},${b0x[1]},${b0y[1]}
-    C${a2x[1]},0,${a1x[1]},0,${startPoint}
+    C0,${a1x[0]},0,${a2x[0]},${a3y[0]},${a3x[0]}
+    C${b1y[0]},${b1x[0]},${b1x[0]},${b1y[0]},${b0x[0]},${b0y[0]}
+    C${a2x[0]},0,${a1x[0]},0,${startPoint}
     Z`
         .replace(/[\n ]/g, '')
         .replace(/NaN/g, '0')
-        .replace(/\d+\.\d+/g, match =>
+        /*.replace(/\d+\.\d+/g, match =>
             Math.round(Number(match) * (10 ** roundToNthPlace)) / (10 ** roundToNthPlace)
-        )
+        )*/
 
     if (path.match(/[^ M0LCZ,]/) === null)
         return ''
