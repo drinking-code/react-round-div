@@ -86,24 +86,3 @@ set [`dontConvertShadow`](#dontconvertshadow). This may also change in future ve
 ### Intended differences to the html `<div>`
 
 Unlike the html `<div>`, `RoundDiv` still rounds the corners of borders of there is a border image set. This looks great with gradients, but might clash with the use of actual images as borders.
-
-### webpack
-
-If you use a preprocessor like webpack (which you most likely are), you need to turn off or polyfill the node
-modules `url` and `path`, and turn off `fs`. This is due to the module [`css`](https://www.npmjs.com/package/css), which
-uses them. In webpack, you can do this with
-the [`resolve.fallback.<module_name>`](https://webpack.js.org/configuration/resolve/#resolvefallback) option:
-
-```javascript
-module.exports = {
-    resolve: {
-        fallback: {
-            path: false,
-            url: false,
-            fs: false,
-        }
-    }
-}
-```
-
-If you use `create-react-app`, take a look at [`react-app-rewired`](https://www.npmjs.com/package/react-app-rewired).
