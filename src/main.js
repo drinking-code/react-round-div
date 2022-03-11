@@ -19,15 +19,13 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const [height, setHeight] = useState(0)
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(array(4, 0))
+    const [boxSizing, setBoxSizing] = useState('content-box')
 
     const [transition, setTransition] = useState(array(4, 0))
 
     const [background, setBackground] = useState({})
     const [border, setBorder] = useState({width: array(4, 0)})
     const [borderImage, setBorderImage] = useState({})
-    // const [borderColor, setBorderColor] = useState(array(4, 'transparent'))
-    // const [borderOpacity, setBorderOpacity] = useState(array(4, 0))
-    // const [borderWidth, setBorderWidth] = useState(array(4, 0))
     const [shadows, setShadows] = useState(array(2, []))
 
     const [path, setPath] = useState('Z')
@@ -39,6 +37,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
         updateStates({
             div,
             style,
+            setBoxSizing,
             setPadding,
             setHeight,
             setWidth,
@@ -77,27 +76,34 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
             ).join(',')
         ))
         setPath(generateSvgSquircle(height, width, radius))
-    }, [height, width, radius, border.width])
+    }, [height, width, radius, border, padding])
 
     useEffect(() => {
+        const currentSvgRef = svgRef.current
         // patch for webkit's svg bug
-        if (svgRef.current)
+        if (currentSvgRef)
             setTimeout(() => {
-                const oldPosition = svgRef.current.style.position || ''
-                svgRef.current.style.display = 'none'
-                svgRef.current.style.position = 'absolute'
+                const oldPosition = currentSvgRef.style.position || ''
+                currentSvgRef.style.display = 'none'
+                currentSvgRef.style.position = 'absolute'
                 setTimeout(() => {
-                    svgRef.current.style.display = ''
-                    svgRef.current.style.position = oldPosition
+                    currentSvgRef.style.display = ''
+                    currentSvgRef.style.position = oldPosition
                 }, 10)
             }, 0)
     }, [radius, border, borderImage])
 
-    const pathIsEmpty = (path.startsWith('Z') || path === '')
+    const invisibleBorderStyles = {
+        borderWidth: border.width.map(v => v + 'px').join(' '),
+        borderStyle: 'solid',
+        borderColor: 'transparent',
+    }
+
+    const pathIsEmpty = path.startsWith('Z') || path === ''
     const divStyle = {
         ...style,
         ...(pathIsEmpty ? {} : {
-            border: 'none',
+            ...invisibleBorderStyles,
             borderImage: 'none',
             background: 'transparent',
             boxShadow: dontConvertShadow
@@ -110,8 +116,11 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     }
 
     const shapeComponentStyles = {
+        // height: boxSizing === 'border-box' ? height : height - (border.width[0] + padding[0] + border.width[2] + padding[2]),
+        // width: boxSizing === 'border-box' ? width : width - (border.width[1] + padding[1] + border.width[3] + padding[3]),
         height,
         width,
+        padding: padding.map(n => n + 'px').join(' '),
         position: 'fixed',
         left: 0,
         top: 0,
@@ -121,13 +130,14 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
 
     const widenedBorderWidth = border.width.map(v => v + Math.max(.5, v * .1))
 
-    return <div {...props} style={divStyle} ref={div}>
+    return <div {...props} style={divStyle} ref={div} data-rrd-overwritten={pathIsEmpty ? 'false' : 'true'}>
         {pathIsEmpty ? null : <ShadowRoot>
             <div style={{
                 transform: 'scale(1)'
             }}>
                 <div style={{
                     ...shapeComponentStyles,
+                    ...invisibleBorderStyles,
                     clipPath: `path("${path}")`,
                     // inset shadow only
                     boxShadow: shadows[1].join(','),
@@ -139,11 +149,14 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                 }}/>
                 <div style={{
                     ...shapeComponentStyles,
+                    ...invisibleBorderStyles,
                     clipPath: `path("${path}")`
                 }}>
                     <div style={{
-                        height: height - (widenedBorderWidth[0] + widenedBorderWidth[2]),
-                        width: width - (widenedBorderWidth[1] + widenedBorderWidth[3]),
+                        height,
+                        width,
+                        // boxSizing: 'border-box',
+                        transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
                         clipPath: `path("M0,0V${height}H${width}V0Z${innerPath}")`,
                         borderRadius: radius.map(n => (n - 1) + 'px').join(' '),
                         borderColor: border.color,

@@ -1,7 +1,6 @@
 import {
     convertBorderWidth,
     toNumber,
-    htmlBorderRadiusNotSvgError,
     separateInsetBoxShadow
 } from './utils/css-utils';
 import getAllCssPropertyDeclarationsForElement from './utils/styles-extractor';
@@ -34,17 +33,19 @@ export default function updateStates(args) {
         lazySetBorderImage = newState => lazySetObjectsState(states.setBorderImage, newState),
         lazySetShadows = newState => lazySetArrayState(states.setShadows, newState)
 
+    const oneIfStylesAreOverridden = args.div?.current?.dataset.rrdOverwritten === 'true' ? 1 : 0
+
     ReactDOM.unstable_batchedUpdates(() => {
         states.setPadding(
             ['top', 'right', 'bottom', 'left']
                 .map(s => getNthStyle('padding-' + s, 0, 'padding'))
-                .map(n => toNumber(n, div.current))
+                .map(n => toNumber(n, div.current) || 0)
         )
 
         lazySetRadius(
             getBorderRadii(0)
                 .map(s => Math.min(
-                    toNumber(s, div.current, htmlBorderRadiusNotSvgError),
+                    toNumber(s, div.current),
                     height / 2,
                     width / 2
                 ))
@@ -52,6 +53,10 @@ export default function updateStates(args) {
 
         states.setTransition(
             getNthStyle('transition', 0)
+        )
+
+        states.setBoxSizing(
+            getNthStyle('box-sizing', 0) || 'content-box'
         )
 
         lazySetBackground(
@@ -65,7 +70,7 @@ export default function updateStates(args) {
                 'repeat',
                 'size'
             ].map(key =>
-                [key, getNthStyle('background-' + key, 1, 'background')]
+                [key, getNthStyle('background-' + key, oneIfStylesAreOverridden, 'background')]
             ))
         )
 
@@ -74,7 +79,7 @@ export default function updateStates(args) {
             'style',
             'width',
         ].map(key =>
-            [key, getNthStyle('border-' + key, 1, 'border')]
+            [key, getNthStyle('border-' + key, oneIfStylesAreOverridden, 'border')]
         ))
         border.width = border.width?.split(' ')
             ?.map(s => convertBorderWidth(s, div.current))
@@ -97,13 +102,13 @@ export default function updateStates(args) {
                 'source',
                 'width',
             ].map(key =>
-                [key, getNthStyle('border-image-' + key, 1, 'border-image')]
+                [key, getNthStyle('border-image-' + key, oneIfStylesAreOverridden, 'border-image')]
             ))
         )
 
         lazySetShadows(
             separateInsetBoxShadow(
-                getNthStyle('box-shadow', 1)
+                getNthStyle('box-shadow', oneIfStylesAreOverridden)
             )
         )
     })
