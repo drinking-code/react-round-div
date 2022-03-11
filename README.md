@@ -28,8 +28,8 @@ npm i react-round-div
 
 |                                  |  Gzipped | Minified + Gzipped |
 |----------------------------------|---------:|-------------------:|
-| `react-round-div`                |   7.8 KB |            5.28 KB |
-| `react-round-div` + dependencies | 14.97 KB |        **9.17 KB** |
+| `react-round-div`                |  7.71 KB |            5.18 KB |
+| `react-round-div` + dependencies | 14.88 KB |        **9.07 KB** |
 
 ## Usage
 

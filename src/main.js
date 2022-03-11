@@ -116,10 +116,8 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     }
 
     const shapeComponentStyles = {
-        // height: boxSizing === 'border-box' ? height : height - (border.width[0] + padding[0] + border.width[2] + padding[2]),
-        // width: boxSizing === 'border-box' ? width : width - (border.width[1] + padding[1] + border.width[3] + padding[3]),
-        height,
-        width,
+        height: boxSizing === 'border-box' ? height : height - (border.width[0] + padding[0] + border.width[2] + padding[2]),
+        width: boxSizing === 'border-box' ? width : width - (border.width[1] + padding[1] + border.width[3] + padding[3]),
         padding: padding.map(n => n + 'px').join(' '),
         position: 'fixed',
         left: 0,
@@ -141,7 +139,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     clipPath: `path("${path}")`,
                     // inset shadow only
                     boxShadow: shadows[1].join(','),
-                    borderRadius: radius.map(n => (n - 1) + 'px').join(' '),
+                    borderRadius: radius.map(n => (n * .95) + 'px').join(' '),
                     ...(Object.fromEntries(Object.keys(background).map(key => {
                         return [camelise(key === 'null' ? 'background' : ('background-' + key)), background[key]]
                     }))),
@@ -153,12 +151,11 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     clipPath: `path("${path}")`
                 }}>
                     <div style={{
-                        height,
-                        width,
-                        // boxSizing: 'border-box',
+                        height: height - (widenedBorderWidth[0] + widenedBorderWidth[2]),
+                        width: width - (widenedBorderWidth[1] + widenedBorderWidth[3]),
                         transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
                         clipPath: `path("M0,0V${height}H${width}V0Z${innerPath}")`,
-                        borderRadius: radius.map(n => (n - 1) + 'px').join(' '),
+                        borderRadius: radius.map(n => (n * .95) + 'px').join(' '),
                         borderColor: border.color,
                         borderWidth: widenedBorderWidth.map(v => v + 'px').join(' '),
                         borderStyle: border.style,
