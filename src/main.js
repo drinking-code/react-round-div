@@ -153,7 +153,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     <div style={{
                         height: height - (widenedBorderWidth[0] + widenedBorderWidth[2]),
                         width: width - (widenedBorderWidth[1] + widenedBorderWidth[3]),
-                        transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
+                        transform: `translate(-${padding[3] + border.width[3]}px, -${padding[0] + border.width[0]}px)`,
                         clipPath: `path("M0,0V${height}H${width}V0Z${innerPath}")`,
                         borderRadius: radius.map(n => (n * .95) + 'px').join(' '),
                         borderColor: border.color,
