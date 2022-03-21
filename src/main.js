@@ -20,6 +20,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const [width, setWidth] = useState(0)
     const [radius, setRadius] = useState(array(4, 0))
     const [boxSizing, setBoxSizing] = useState('content-box')
+    const [overflow, setOverflow] = useState('visible')
 
     const [transition, setTransition] = useState(array(4, 0))
 
@@ -38,6 +39,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
             div,
             style,
             setBoxSizing,
+            setOverflow,
             setPadding,
             setHeight,
             setWidth,
@@ -52,7 +54,11 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
 
     useEffect(() => {
         const watcherId = attachCSSWatcher(updateStatesWithArgs, div.current) // todo: make this a react hook
-        updateStatesWithArgs()
+        const waitForDocumentComplete = setInterval(() => {
+            if (document.readyState !== 'complete') return
+            clearInterval(waitForDocumentComplete)
+            updateStatesWithArgs()
+        }, 1)
         return () => {
             detachCSSWatcher(watcherId)
         }
@@ -102,7 +108,9 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const pathIsEmpty = path.startsWith('Z') || path === ''
     const divStyle = {
         ...style,
-        ...(pathIsEmpty ? {} : {
+        ...(pathIsEmpty ? {
+            borderImage: 'none',
+        } : {
             ...invisibleBorderStyles,
             borderImage: 'none',
             background: 'transparent',
@@ -112,6 +120,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                 : 'none',
             // drop shadow only
             filter: dontConvertShadow ? '' : shadows[0].map(shadowData => `drop-shadow(${shadowData})`).join(' '),
+            overflow: 'visible',
         })
     }
 
@@ -128,7 +137,10 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
 
     const widenedBorderWidth = border.width.map(v => v + Math.max(.5, v * .1))
 
-    return <div {...props} style={divStyle} ref={div} data-rrd-overwritten={pathIsEmpty ? 'false' : 'true'}>
+    if (div.current)
+        div.current.rrdOverwritten = !pathIsEmpty
+
+    return <div {...props} style={divStyle} ref={div}>
         {pathIsEmpty ? null : <ShadowRoot>
             <div style={{
                 transform: 'scale(1)'
@@ -168,7 +180,15 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                         transition,
                     }}/>
                 </div>
-                <slot style={{overflow: 'visible'}}/>
+                <div style={{
+                    height: height - (border.width[0] + border.width[2]) * 2,
+                    width: width - (border.width[1] + border.width[3]) * 2,
+                    ...invisibleBorderStyles,
+                    transform: `translate(-${padding[3] + border.width[3]}px, -${padding[0] + border.width[0]}px)`,
+                    clipPath: overflow === 'hidden' ? `path("${innerPath}")` : null,
+                }}>
+                    <slot style={{overflow: 'visible'}}/>
+                </div>
             </div>
         </ShadowRoot>}
         {children}

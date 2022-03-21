@@ -8,15 +8,8 @@ import ReactDOM from 'react-dom'
 import {lazySetArrayState, lazySetObjectsState} from './utils/react-utils'
 
 export default function updateStates(args) {
-    const {div, setHeight, setWidth} = args
-    const boundingClientRect = div.current?.getBoundingClientRect()
-    let height, width;
-    if (boundingClientRect) {
-        height = boundingClientRect.height
-        width = boundingClientRect.width
-        setHeight(height)
-        setWidth(width)
-    }
+    const {div} = args
+    if (!div.current) return
 
     const getNthStyle = (key, n, shorthand) => {
         const styles = getAllCssPropertyDeclarationsForElement(key, div.current, shorthand)
@@ -33,7 +26,7 @@ export default function updateStates(args) {
         lazySetBorderImage = newState => lazySetObjectsState(states.setBorderImage, newState),
         lazySetShadows = newState => lazySetArrayState(states.setShadows, newState)
 
-    const oneIfStylesAreOverridden = args.div?.current?.dataset.rrdOverwritten === 'true' ? 1 : 0
+    const oneIfStylesAreOverridden = args.div?.current?.rrdOverwritten ? 1 : 0
 
     ReactDOM.unstable_batchedUpdates(() => {
         states.setPadding(
@@ -42,21 +35,16 @@ export default function updateStates(args) {
                 .map(n => toNumber(n, div.current) || 0)
         )
 
-        lazySetRadius(
-            getBorderRadii(0)
-                .map(s => Math.min(
-                    toNumber(s, div.current),
-                    height / 2,
-                    width / 2
-                ))
-        )
-
         states.setTransition(
             getNthStyle('transition', 0)
         )
 
         states.setBoxSizing(
             getNthStyle('box-sizing', 0) || 'content-box'
+        )
+
+        states.setOverflow(
+            getNthStyle('overflow', oneIfStylesAreOverridden) || 'visible'
         )
 
         lazySetBackground(
@@ -93,6 +81,20 @@ export default function updateStates(args) {
 
         border.width = border.width ?? Array(4).fill(0)
         lazySetBorder(border)
+
+        const height = div.current?.clientHeight + border.width[0] + border.width[2],
+            width = div.current?.clientWidth + border.width[1] + border.width[3]
+        states.setHeight(height)
+        states.setWidth(width)
+
+        lazySetRadius(
+            getBorderRadii(0)
+                .map(s => Math.min(
+                    toNumber(s, div.current),
+                    height / 2,
+                    width / 2
+                ))
+        )
 
         lazySetBorderImage(
             Object.fromEntries([

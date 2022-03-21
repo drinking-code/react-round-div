@@ -28,8 +28,8 @@ npm i react-round-div
 
 |                                  |  Gzipped | Minified + Gzipped |
 |----------------------------------|---------:|-------------------:|
-| `react-round-div`                |  7.71 KB |            5.18 KB |
-| `react-round-div` + dependencies | 14.88 KB |        **9.07 KB** |
+| `react-round-div`                |  7.81 KB |            5.27 KB |
+| `react-round-div` + dependencies | 21.01 KB |        **9.45 KB** |
 
 ## Usage
 
@@ -49,8 +49,6 @@ const App = () => {
 
 export default App;
 ```
-
-Also, [turn off or polyfill `url`, `path`, and `fs`](#webpack)
 
 ### Options
 
@@ -76,6 +74,7 @@ There are a couple of css properties, that you can't reliably set _inline_ with 
 
 - the `background` property and all the properties it is a shorthand for
 - the `border`, `border-image`, and all the properties they are a shorthand for
+- `overflow`
 - `box-shadow`
 - `filter`, if you haven't set [`dontConvertShadow`](#dontconvertshadow)
 
@@ -85,4 +84,5 @@ set [`dontConvertShadow`](#dontconvertshadow). This may also change in future ve
 
 ### Intended differences to the html `<div>`
 
-Unlike the html `<div>`, `RoundDiv` still rounds the corners of borders of there is a border image set. This looks great with gradients, but might clash with the use of actual images as borders.
+Unlike the html `<div>`, `RoundDiv` still rounds the corners of borders if you have set a border image. This looks great with gradients, but might clash with the use of actual images as borders.  
+You may notice a flash of white in the border before the gradient is shown. To combat this, define a `border-color` for the element in addition to the `border-image` gradient. This gives the browser a fallback to show before the `RoundDiv` script generates the smooth corners.

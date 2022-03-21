@@ -1,6 +1,6 @@
 {
     "name": "react-round-div",
-    "version": "1.3.0",
+    "version": "1.3.2",
     "description": "Make your rounded corners look phenomenal with g2 continuity.",
     "main": "dist/main.js",
     "scripts": {
