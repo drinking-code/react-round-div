@@ -33,10 +33,12 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const [innerPath, setInnerPath] = useState('Z')
 
     const div = useRef()
+    const slotWrapper = useRef()
 
     const updateStatesWithArgs = () => {
         updateStates({
             div,
+            slotWrapper,
             style,
             setBoxSizing,
             setOverflow,
@@ -108,11 +110,10 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     const pathIsEmpty = path.startsWith('Z') || path === ''
     const divStyle = {
         ...style,
-        ...(pathIsEmpty ? {
-            borderImage: 'none',
-        } : {
+        borderImage: 'none',
+        ...(pathIsEmpty ? {} : {
             ...invisibleBorderStyles,
-            borderImage: 'none',
+            padding: '0',
             background: 'transparent',
             boxShadow: dontConvertShadow
                 // "box-shadow" must be overridden for the style extraction to work (with nth: 1, and not nth: 0)
@@ -125,13 +126,12 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
     }
 
     const shapeComponentStyles = {
-        height: boxSizing === 'border-box' ? height : height - (border.width[0] + padding[0] + border.width[2] + padding[2]),
-        width: boxSizing === 'border-box' ? width : width - (border.width[1] + padding[1] + border.width[3] + padding[3]),
-        padding: padding.map(n => n + 'px').join(' '),
+        height: boxSizing === 'border-box' ? height : height - (border.width[0] + border.width[2]),
+        width: boxSizing === 'border-box' ? width : width - (border.width[1] + border.width[3]),
         position: 'fixed',
         left: 0,
         top: 0,
-        transform: `translate(-${padding[3] + border.width[3]}px, -${padding[0] + border.width[0]}px)`,
+        transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
         zIndex: -1,
     }
 
@@ -142,9 +142,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
 
     return <div {...props} style={divStyle} ref={div}>
         {pathIsEmpty ? null : <ShadowRoot>
-            <div style={{
-                transform: 'scale(1)'
-            }}>
+            <div style={{transform: 'scale(1)'}}>
                 <div style={{
                     ...shapeComponentStyles,
                     ...invisibleBorderStyles,
@@ -165,7 +163,7 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     <div style={{
                         height: height - (widenedBorderWidth[0] + widenedBorderWidth[2]),
                         width: width - (widenedBorderWidth[1] + widenedBorderWidth[3]),
-                        transform: `translate(-${padding[3] + border.width[3]}px, -${padding[0] + border.width[0]}px)`,
+                        transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
                         clipPath: `path("M0,0V${height}H${width}V0Z${innerPath}")`,
                         borderRadius: radius.map(n => (n * .95) + 'px').join(' '),
                         borderColor: border.color,
@@ -181,13 +179,14 @@ export default function RoundDiv({style, children, dontConvertShadow, ...props})
                     }}/>
                 </div>
                 <div style={{
-                    height: height - (border.width[0] + border.width[2]) * 2,
-                    width: width - (border.width[1] + border.width[3]) * 2,
+                    display: 'inline-flex',
                     ...invisibleBorderStyles,
-                    transform: `translate(-${padding[3] + border.width[3]}px, -${padding[0] + border.width[0]}px)`,
+                    padding: padding.map(n => n + 'px').join(' '),
                     clipPath: overflow === 'hidden' ? `path("${innerPath}")` : null,
-                }}>
-                    <slot style={{overflow: 'visible'}}/>
+                    transform: `translate(-${border.width[3]}px, -${border.width[0]}px)`,
+                    boxSizing: 'border-box',
+                }} ref={slotWrapper}>
+                    <slot/>
                 </div>
             </div>
         </ShadowRoot>}

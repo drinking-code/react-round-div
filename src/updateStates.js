@@ -8,7 +8,7 @@ import ReactDOM from 'react-dom'
 import {lazySetArrayState, lazySetObjectsState} from './utils/react-utils'
 
 export default function updateStates(args) {
-    const {div} = args
+    const {div, slotWrapper} = args
     if (!div.current) return
 
     const getNthStyle = (key, n, shorthand) => {
@@ -31,7 +31,7 @@ export default function updateStates(args) {
     ReactDOM.unstable_batchedUpdates(() => {
         states.setPadding(
             ['top', 'right', 'bottom', 'left']
-                .map(s => getNthStyle('padding-' + s, 0, 'padding'))
+                .map(s => getNthStyle('padding-' + s, oneIfStylesAreOverridden, 'padding'))
                 .map(n => toNumber(n, div.current) || 0)
         )
 
@@ -82,8 +82,8 @@ export default function updateStates(args) {
         border.width = border.width ?? Array(4).fill(0)
         lazySetBorder(border)
 
-        const height = div.current?.clientHeight + border.width[0] + border.width[2],
-            width = div.current?.clientWidth + border.width[1] + border.width[3]
+        const height = ((slotWrapper.current ?? div.current).clientHeight || 0) + border.width[0] + border.width[2],
+            width = ((slotWrapper.current ?? div.current).clientWidth || 0) + border.width[1] + border.width[3]
         states.setHeight(height)
         states.setWidth(width)
 
@@ -104,7 +104,7 @@ export default function updateStates(args) {
                 'source',
                 'width',
             ].map(key =>
-                [key, getNthStyle('border-image-' + key, oneIfStylesAreOverridden, 'border-image')]
+                [key, getNthStyle('border-image-' + key, 1, 'border-image')]
             ))
         )
 
